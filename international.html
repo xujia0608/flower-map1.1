@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全球花卉产业辐射与定价权 · 交互地图</title>
+<title>全球花卉贸易辐射网络</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,14 +53,13 @@
 
   /* ---- 图例面板 ---- */
   .legend-panel {
-    position: absolute; bottom: 30px; left: 12px; z-index: 1000;
-    background: rgba(255,255,255,0.96); border-radius: 10px;
-    padding: 12px 16px; box-shadow: 0 4px 20px rgba(128,40,56,0.12);
-    font-size: 13px; pointer-events: auto;
-    border: 1px solid #E8CCD4;
+    background: rgba(255,255,255,0.96); border-radius: 8px;
+    padding: 8px 12px; box-shadow: 0 4px 20px rgba(128,40,56,0.12);
+    font-size: 12px; border: 1px solid #E8CCD4;
     display: none;
   }
-  .legend-panel.visible { display: block; }
+  .legend-panel.visible { display: block; margin-bottom: 6px; }
+  .legend-wrap { display: flex; flex-direction: column; gap: 6px; }
   .legend-panel h4 { margin-bottom: 8px; color: #802838; font-size: 13px; }
   .legend-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; color: #666; }
   .legend-swatch { width: 22px; height: 15px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
@@ -86,12 +85,14 @@
 
   /* ---- 发射脉冲动画 ---- */
   @keyframes pulseRing {
-    0%   { transform: scale(0.3); opacity: 0.9; }
-    100% { transform: scale(2.5); opacity: 0; }
+    0%   { transform: scale(0.5); opacity: 1; border-width: 3px; }
+    50%  { opacity: 0.6; }
+    100% { transform: scale(8); opacity: 0; border-width: 0.5px; }
   }
   @keyframes pulseRing2 {
-    0%   { transform: scale(0.3); opacity: 0.7; }
-    100% { transform: scale(2.0); opacity: 0; }
+    0%   { transform: scale(0.5); opacity: 0.8; border-width: 2px; }
+    50%  { opacity: 0.4; }
+    100% { transform: scale(6); opacity: 0; border-width: 0.5px; }
   }
   @keyframes flowDash {
     to { stroke-dashoffset: -28; }
@@ -103,15 +104,17 @@
   /* 脉冲圈 */
   .pulse-ring {
     position: absolute;
-    border: 2px solid #943850;
+    border: 3px solid #943850;
     border-radius: 50%;
-    animation: pulseRing 2.5s ease-out infinite;
+    background: rgba(148,56,80,0.08);
+    animation: pulseRing 5s ease-out infinite;
     pointer-events: none;
     z-index: 10000;
   }
   .pulse-ring:nth-child(2) {
-    animation: pulseRing2 2.5s ease-out 1.2s infinite;
+    animation: pulseRing2 5s ease-out 1.5s infinite;
     border-color: #BC8090;
+    background: rgba(188,128,144,0.06);
   }
 
   .info-bar {
@@ -131,56 +134,38 @@
 
 <div class="title-bar">
   <div>
-    <h1>🌸 全球花卉产业辐射与定价权</h1>
-    <span class="subtitle">Flower Industry Global Radiation &amp; Pricing Power</span>
+    <h1>🌸 全球花卉贸易辐射网络</h1>
+    <span class="subtitle">Global Trade Radiation — 斗南→国际市场</span>
   </div>
 </div>
 
 <div class="layer-panel" id="layerPanel">
   <h3>🗺️ 图层控制</h3>
-  <label><input type="checkbox" id="toggleIDW" checked> <span class="layer-dot" style="background:#D0A4B0;"></span> 辐射密度面 (IDW插值)</label>
-  <label><input type="checkbox" id="toggleKDE"> <span class="layer-dot" style="background:#BC8090;"></span> 核密度分析</label>
   <label><input type="checkbox" id="toggleOD" checked> <span class="layer-dot" style="background:#C08090;"></span> 贸易网络线 (OD)</label>
   <label><input type="checkbox" id="toggleTier" checked> <span class="layer-dot circle" style="background:#943850;"></span> 定价权等级点</label>
   <label style="margin-top:6px;border-top:1px solid #F0DCE2;padding-top:6px;"><input type="checkbox" id="toggleLabels" checked> 🏷️ 显示市场名称标注</label>
 </div>
 
-<!-- IDW 辐射密度图例 -->
-<div class="legend-panel visible" id="legendIDW">
-  <h4>📊 辐射密度等级 (IDW插值)</h4>
-  <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1 — 低密度</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4 — 高密度</div>
-</div>
-
-<!-- 核密度图例 -->
-<div class="legend-panel" id="legendKDE">
-  <h4>🔬 核密度分析</h4>
-  <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 等级5 — 最高密度</div>
-</div>
-
+<div class="legend-wrap" style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:none;">
+<div style="pointer-events:auto;">
 <!-- OD网络图例 -->
 <div class="legend-panel visible" id="legendOD">
   <h4>🔗 贸易流量分级 (OD网络)</h4>
-  <div class="legend-row"><span class="legend-line" style="border-top:1px solid #E2C4CC;"></span> 1级 — 低流量</div>
-  <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #D0A4B0;"></span> 2级</div>
-  <div class="legend-row"><span class="legend-line" style="border-top:2px solid #BC8090;"></span> 3级</div>
-  <div class="legend-row"><span class="legend-line" style="border-top:2.5px solid #A8586C;"></span> 4级</div>
-  <div class="legend-row"><span class="legend-line" style="border-top:3px solid #943850;"></span> 5级 — 高流量</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1px solid #943850;"></span> ≤300 (低流量)</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #802838;"></span> ≤800</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:2px solid #601020;"></span> ≤1500</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:2.5px solid #3d0818;"></span> ≤3000</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:3px solid #1a0408;"></span> >3000 (高流量)</div>
 </div>
 
 <!-- 定价权图例 -->
 <div class="legend-panel visible" id="legendTier">
   <h4>⭐ 定价权等级</h4>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#943850;width:16px;height:16px;"></span> 核心枢纽 ★</div>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:13px;height:13px;"></span> 区域中心 ●</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;width:11px;height:11px;border-radius:1px;"></span> 分销节点 ■</div>
+  <div class="legend-row"><span class="legend-swatch star" style="color:#943850;">★</span> 核心枢纽</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:13px;height:13px;"></span> 区域中心</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#E2C4CC;width:9px;height:9px;"></span> 分销节点</div>
 </div>
+</div></div>
 
 <div class="info-bar" id="infoBar">要素加载中…</div>
 
@@ -208,11 +193,12 @@ const KDE_COLORS = [PK.levelA, PK.levelB, PK.levelC, PK.levelD, PK.levelE, PK.le
 // OD线: Jenks 5级 (按 volume_sim)
 // OD线: 显著加深加粗版
 const OD_CLASSES = [
-  { max: 1000,  color: PK.levelD, weight: 0.8, opacity: 0.55 },  // #BC8090
-  { max: 3000,  color: PK.levelE, weight: 1.2, opacity: 0.55 },  // #A8586C
-  { max: 6000,  color: PK.levelF, weight: 1.8, opacity: 0.55 },  // #943850
-  { max: 9000,  color: PK.accent, weight: 2.2, opacity: 0.55 },  // #802838
-  { max: Infinity, color: '#601020', weight: 2.8, opacity: 0.60 }, // 最深
+// 国际流量: 10-4897, 按实际分布分级
+  { max: 300,   color: PK.levelF, weight: 1.0, opacity: 0.72 },
+  { max: 800,   color: PK.accent, weight: 1.5, opacity: 0.72 },
+  { max: 1500,  color: '#601020', weight: 2.0, opacity: 0.74 },
+  { max: 3000,  color: '#3d0818', weight: 2.5, opacity: 0.74 },
+  { max: Infinity, color: '#1a0408', weight: 3.0, opacity: 0.76 },
 ];
 
 // 定价权: 3级唯一值
@@ -283,16 +269,18 @@ function styleOD(feature) {
   return { color: PK.levelB, weight: 0.3, opacity: 0.25 };
 }
 
-function styleTier(feature) {
+function styleTier(feature, latlng) {
   const tl = feature.properties.tier_label || '';
-  const style = TIER_STYLE[tl] || TIER_DEFAULT;
-  return {
-    radius: style.radius,
-    fillColor: style.color,
-    color: '#fff',
-    weight: style.weight,
-    fillOpacity: style.fillOpacity,
-  };
+  if (tl === '核心枢纽') {
+    return L.marker(latlng, { icon: L.divIcon({
+      className: '', html: '<div style="font-size:18px;color:#943850;line-height:1;">★</div>',
+      iconAnchor: [9, 9], iconSize: [18, 18]
+    })});
+  }
+  if (tl === '区域中心') {
+    return L.circleMarker(latlng, { radius: 7, fillColor: '#BC8090', fillOpacity: 0.9, color: '#fff', weight: 2 });
+  }
+  return L.circleMarker(latlng, { radius: 5, fillColor: '#E2C4CC', fillOpacity: 0.9, color: '#fff', weight: 1.5 });
 }
 
 // ======================== Popup / Tooltip ========================
@@ -395,22 +383,36 @@ function addDounanStar() {
       pane.style.zIndex = '9998';
       map.getContainer().appendChild(pane);
 
+      function getRingSize() {
+        const z = map.getZoom();
+        return Math.max(12, 20 + (z - 3) * 15);
+      }
       const r1 = document.createElement('div');
       r1.className = 'pulse-ring';
-      r1.style.width = '60px'; r1.style.height = '60px';
-      r1.style.marginLeft = '-30px'; r1.style.marginTop = '-30px';
+      const updateRingSize = () => {
+        const s = getRingSize();
+        r1.style.width = s + 'px'; r1.style.height = s + 'px';
+        r1.style.marginLeft = (-s/2) + 'px'; r1.style.marginTop = (-s/2) + 'px';
+      };
+      updateRingSize();
       pane.appendChild(r1);
 
       const r2 = document.createElement('div');
       r2.className = 'pulse-ring';
-      r2.style.width = '60px'; r2.style.height = '60px';
-      r2.style.marginLeft = '-30px'; r2.style.marginTop = '-30px';
+      const updateRingSize2 = () => {
+        const s = getRingSize();
+        r2.style.width = s + 'px'; r2.style.height = s + 'px';
+        r2.style.marginLeft = (-s/2) + 'px'; r2.style.marginTop = (-s/2) + 'px';
+      };
+      updateRingSize2();
       pane.appendChild(r2);
 
       this._update = () => {
         const pt = map.latLngToContainerPoint(DOUNAN_COORDS);
         pane.style.left = pt.x + 'px';
         pane.style.top = pt.y + 'px';
+        updateRingSize();
+        updateRingSize2();
       };
       map.on('move zoom', this._update);
       this._update();
@@ -423,113 +425,58 @@ function addDounanStar() {
 }
 
 // ======================== 发光段沿路径飞行 (Canvas) ========================
-function createParticleEffect(odData) {
-  const features = odData.features;
-  const N = Math.min(25, features.length);
-  const step = Math.max(1, Math.floor(features.length / N));
-  const paths = [];
-  for (let i = 0; i < N; i++) {
-    const f = features[i * step];
-    if (f && f.geometry && f.geometry.coordinates) {
-      paths.push(f.geometry.coordinates);
-    }
-  }
+function createParticleEffect(odLayer) {
+  const clones = [];
+  let svg = null;
 
-  // Canvas 放在地图容器外，绝对定位覆盖在地图上
-  const mapContainer = map.getContainer();
-  const canvas = L.DomUtil.create('canvas', 'particle-canvas');
-  canvas.style.position = 'absolute';
-  canvas.style.top = '0';
-  canvas.style.left = '0';
-  canvas.style.pointerEvents = 'none';
-  canvas.style.zIndex = '9997';
-  mapContainer.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
-
-  function resize() {
-    canvas.width = mapContainer.clientWidth;
-    canvas.height = mapContainer.clientHeight;
-    canvas.style.width = mapContainer.clientWidth + 'px';
-    canvas.style.height = mapContainer.clientHeight + 'px';
-  }
-  resize();
-  map.on('resize', resize);
-
-  // 每条线：发光段飞行
-  const glows = paths.map(coords => ({
-    coords,
-    t: Math.random(),
-    speed: 0.002 + Math.random() * 0.005,
-    segLen: 0.10 + Math.random() * 0.15,  // 占路径长度的 10%-25%
-  }));
-
-  // 提取匀速路径上某点的屏幕坐标
-  function pointAt(coords, t) {
-    if (coords.length < 2) return map.latLngToContainerPoint([coords[0][1], coords[0][0]]);
-    let total = 0, segs = [], pts = [];
-    for (let i = 1; i < coords.length; i++) {
-      const dx = coords[i][0] - coords[i-1][0];
-      const dy = coords[i][1] - coords[i-1][1];
-      const len = Math.sqrt(dx*dx + dy*dy);
-      segs.push({ i0: i-1, i1: i, len, cum: total });
-      total += len;
-    }
-    const target = t * total;
-    for (const s of segs) {
-      if (target <= s.cum + s.len) {
-        const f = s.len > 0 ? (target - s.cum) / s.len : 0;
-        const lng = coords[s.i0][0] + f * (coords[s.i1][0] - coords[s.i0][0]);
-        const lat = coords[s.i0][1] + f * (coords[s.i1][1] - coords[s.i0][1]);
-        return map.latLngToContainerPoint([lat, lng]);
+  function buildClones() {
+    clones.forEach(c => c.el.remove());
+    clones.length = 0;
+    const pathEls = [];
+    odLayer.eachLayer(function(l) {
+      if (l._path && l._path.getTotalLength) {
+        const len = l._path.getTotalLength();
+        if (len > 50) pathEls.push({ el: l._path, len });
       }
-    }
-    return map.latLngToContainerPoint([coords[coords.length-1][1], coords[coords.length-1][0]]);
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    glows.forEach(g => {
-      g.t += g.speed;
-      if (g.t > 1) g.t = 0;
-
-      const t0 = g.t;
-      const t1 = Math.min(1, g.t + g.segLen);
-
-      // 采样发光段上的点 (20个采样点，更平滑)
-      const screenPts = [];
-      const steps = 20;
-      for (let i = 0; i <= steps; i++) {
-        const ti = t0 + (t1 - t0) * (i / steps);
-        if (ti > 1) break;
-        screenPts.push(pointAt(g.coords, Math.min(1, ti)));
-      }
-
-      if (screenPts.length < 2) return;
-
-      // 发光主体
-      ctx.save();
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = 'rgba(200,120,150,0.7)';
-      ctx.strokeStyle = 'rgba(240,180,200,0.9)';
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(screenPts[0].x, screenPts[0].y);
-      for (let i = 1; i < screenPts.length; i++) ctx.lineTo(screenPts[i].x, screenPts[i].y);
-      ctx.stroke();
-
-      // 核心白亮线
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(255,245,248,0.95)';
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-      ctx.restore();
     });
-
-    requestAnimationFrame(draw);
+    if (!pathEls.length) return;
+    svg = pathEls[0].el.ownerSVGElement;
+    pathEls.forEach(pd => {
+      const clone = pd.el.cloneNode(true);
+      const segLen = 40 + Math.random() * 60;
+      const total = pd.len;
+      clone.setAttribute('stroke', '#fff');
+      clone.setAttribute('stroke-width', '3.5');
+      clone.setAttribute('stroke-opacity', '0.95');
+      clone.setAttribute('stroke-linecap', 'round');
+      clone.setAttribute('stroke-linecap', 'round');
+      clone.setAttribute('stroke-dasharray', segLen + ' ' + total);
+      clone.setAttribute('stroke-dashoffset', total + Math.random() * segLen);
+      clone.setAttribute('fill', 'none');
+      clone.style.pointerEvents = 'none';
+      svg.appendChild(clone);
+      clones.push({ el: clone, segLen, total, speed: 1.0 + Math.random() * 1.5 });
+    });
   }
-  draw();
+
+  buildClones();
+  let rebuildTimer;
+  function rebuildDebounced() {
+    clearTimeout(rebuildTimer);
+    rebuildTimer = setTimeout(buildClones, 20);
+  }
+  map.on('zoom moveend', rebuildDebounced);
+
+  function animate() {
+    clones.forEach(c => {
+      let offset = parseFloat(c.el.getAttribute('stroke-dashoffset'));
+      offset -= c.speed;
+      if (offset < -c.segLen) offset = c.total;
+      c.el.setAttribute('stroke-dashoffset', offset);
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
 }
 
 // ======================== 主加载 ========================
@@ -541,7 +488,7 @@ async function init() {
   try {
     const continentData = await loadJSON(base + 'continent.geojson');
     continentLayer = L.geoJSON(continentData, {
-      style: { fillColor: '#ffffff', fillOpacity: 1, color: PK.boundary, weight: 0.6, opacity: 0.7 },
+      style: { fillColor: '#fcf5f7', fillOpacity: 1, color: PK.boundary, weight: 0.6, opacity: 0.7 },
       interactive: false,
     });
   } catch(e) { console.warn('大洲加载失败:', e); }
@@ -552,7 +499,7 @@ async function init() {
   try {
     const provData = await loadJSON(base + 'china_provinces.geojson');
     provLayer = L.geoJSON(provData, {
-      style: { fillColor: '#faf3f5', fillOpacity: 1, color: 'transparent', weight: 0 },
+      style: { fillColor: '#f5e4ea', fillOpacity: 1, color: 'transparent', weight: 0 },
       interactive: false,
     });
   } catch(e) { console.warn('省份面加载失败:', e); }
@@ -580,35 +527,17 @@ async function init() {
   } catch(e) { console.warn('海岸线加载失败:', e); }
   coastlineLayer.addTo(map);
 
-  // --- IDW 插值面 ---
-  const idwData = await loadJSON(base + 'idw.geojson');
-  const idwLayer = L.geoJSON(idwData, { style: styleIDW, onEachFeature: bindIDW });
-  layerGroups['idw'] = idwLayer;
-  idwLayer.addTo(map);
-
-  // --- 核密度面 ---
-  let kdeLayer = L.layerGroup(); // placeholder
-  try {
-    const kdeData = await loadJSON(base + 'kernel_density.geojson');
-    kdeLayer = L.geoJSON(kdeData, { style: styleKDE, onEachFeature: bindKDE });
-  } catch(e) { console.warn('核密度分析加载失败:', e); }
-  layerGroups['kde'] = kdeLayer;
-
   // --- OD 网络线 ---
-  const odData = await loadJSON(base + 'od_lines.geojson');
+  const odData = await loadJSON(base + 'od_international.geojson');
   const odLayer = L.geoJSON(odData, { style: styleOD, onEachFeature: bindOD });
   layerGroups['od'] = odLayer;
   odLayer.addTo(map);
-  createParticleEffect(odData);
+  createParticleEffect(odLayer);
 
-  // --- 定价权等级点 ---
+  // --- 定价权等级点 (全球) ---
   const tierData = await loadJSON(base + 'pricing_power.geojson');
   const tierLayer = L.geoJSON(tierData, {
-    pointToLayer: function(feature, latlng) {
-      const tl = feature.properties.tier_label || '';
-      const s = TIER_STYLE[tl] || TIER_DEFAULT;
-      return L.circleMarker(latlng, s);
-    },
+    pointToLayer: styleTier,
     onEachFeature: bindTier,
   });
   layerGroups['tier'] = tierLayer;
@@ -620,7 +549,7 @@ async function init() {
 
   // --- 缩放到全部数据 ---
   const allBounds = L.latLngBounds([]);
-  [idwData, odData, tierData].forEach(d => {
+  [odData, tierData].forEach(d => {
     if (!d || !d.features) return;
     d.features.forEach(f => {
       if (!f.geometry) return;
@@ -633,7 +562,7 @@ async function init() {
 
   // --- 信息栏 ---
   document.getElementById('infoBar').innerHTML =
-    `要素: IDW ${idwData.features.length}面 · OD ${odData.features.length}线 · 定价权 ${tierData.features.length}点 · 核密度 8面 | 数据来源: 中国海关总署/KIFA/中国花卉协会`;
+    `要素: OD ${odData.features.length}线 · 定价权 ${tierData.features.length}点 · 核密度 8面 | 国际OD: 23个目的地 | 数据来源: 中国海关总署`;
 
   // --- 图层切换 ---
   function bindToggle(cbId, key, legendIds) {
@@ -653,8 +582,6 @@ async function init() {
     });
   }
 
-  bindToggle('toggleIDW',  'idw',  ['legendIDW']);
-  bindToggle('toggleKDE', 'kde',  ['legendKDE']);
   bindToggle('toggleOD',  'od',   ['legendOD']);
   bindToggle('toggleTier','tier', ['legendTier']);
 
@@ -668,8 +595,6 @@ async function init() {
 
 function updateLegends() {
   const pairs = [
-    ['toggleIDW',  'legendIDW'],
-    ['toggleKDE', 'legendKDE'],
     ['toggleOD',  'legendOD'],
     ['toggleTier','legendTier'],
   ];
