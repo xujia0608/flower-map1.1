@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: #F7F0F2; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: #fff; }
 
   #map { position: absolute; top: 0; left: 0; width: 100%; height: 100vh; z-index: 1; }
 
@@ -113,6 +113,32 @@
     animation: pulseRing2 2.5s ease-out 1.2s infinite;
     border-color: #BC8090;
   }
+
+  /* OD 线发光流动 */
+  @keyframes odGlow {
+    0%, 100% { stroke-opacity: 0.85; }
+    50%      { stroke-opacity: 0.45; }
+  }
+  @keyframes odFlow1 {
+    0%   { stroke-dashoffset: 30; }
+    100% { stroke-dashoffset: -30; }
+  }
+  @keyframes odFlow2 {
+    0%   { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -60; }
+  }
+  .od-glow {
+    animation: odGlow 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+  .od-flow-a {
+    stroke-dasharray: 4 26;
+    animation: odFlow1 1.5s linear infinite;
+  }
+  .od-flow-b {
+    stroke-dasharray: 4 56;
+    animation: odFlow2 2s linear infinite;
+  }
   .info-bar {
     position: absolute; bottom: 12px; right: 12px; z-index: 1000;
     background: rgba(128,40,56,0.78); color: #F7F0F2; border-radius: 6px;
@@ -131,7 +157,7 @@
 <div class="title-bar">
   <div>
     <h1>🌸 全球花卉产业辐射与定价权</h1>
-    <span class="subtitle">Flower Industry Global Radiation &amp; Pricing Power — 低饱和粉玫色系</span>
+    <span class="subtitle">Flower Industry Global Radiation &amp; Pricing Power</span>
   </div>
 </div>
 
@@ -234,7 +260,7 @@ const map = L.map('map', {
 });
 
 // 纯色底图：匹配 LaTeX PKbg #F7F0F2，不加载任何瓦片底图
-map.getContainer().style.background = '#F7F0F2';
+map.getContainer().style.background = '#ffffff';
 
 // 如需瓦片底图，取消下面注释：
 // const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';
@@ -277,19 +303,23 @@ function styleOD(feature) {
     if (vol <= cls.max) {
       return {
         color: cls.color, weight: cls.weight, opacity: cls.opacity,
-        dashArray: '8 6',
+        className: 'od-glow',
       };
     }
   }
-  return { color: PK.levelB, weight: 0.5, opacity: 0.25, dashArray: '6 8' };
+  return { color: PK.levelB, weight: 0.5, opacity: 0.25, className: 'od-glow' };
 }
 
-// OD线流动动画
+// OD线流动发光效果 — 高亮段沿线路移动
 function animateODLines(layer) {
+  const paths = [];
   layer.eachLayer(function(l) {
-    if (l._path) {
-      l._path.classList.add('od-flow');
-    }
+    if (l._path) paths.push(l._path);
+  });
+  // 分批添加流动效果
+  paths.forEach((path, i) => {
+    const cls = i % 2 === 0 ? 'od-flow-a' : 'od-flow-b';
+    path.classList.add(cls);
   });
 }
 
@@ -338,10 +368,13 @@ function bindTier(feature, layer) {
   const p = feature.properties;
   const tl = p.tier_label || p.tier || '';
   const starIcon = tl === '核心枢纽' ? '★ ' : '';
+  const ll = layer.getLatLng ? layer.getLatLng() : null;
+  const latlngStr = ll ? `${ll.lat.toFixed(4)}°, ${ll.lng.toFixed(4)}°` : '';
   layer.bindPopup(
     `<strong style="font-size:15px;">${starIcon}${p.name || ''}</strong>
      <em style="color:#A8586C;">${p.name_en || ''}</em><br><br>
      📍 ${p.city || ''}, ${p.country || ''}<br>
+     🌐 ${latlngStr}<br>
      🏷️ ${p.type || ''}<br>
      ⭐ 等级: <strong style="color:#943850;">${tl}</strong><br>
      📝 ${p.note || ''}`,
@@ -429,7 +462,7 @@ async function init() {
   try {
     const continentData = await loadJSON(base + 'continent.geojson');
     continentLayer = L.geoJSON(continentData, {
-      style: { fillColor: PK.bg, fillOpacity: 1, color: PK.boundary, weight: 0.6, opacity: 0.7 },
+      style: { fillColor: '#ffffff', fillOpacity: 1, color: PK.boundary, weight: 0.6, opacity: 0.7 },
       interactive: false,
     });
   } catch(e) { console.warn('大洲加载失败:', e); }
