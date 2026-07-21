@@ -205,55 +205,14 @@ const map = L.map('map', {
   zoomControl: true,
 });
 
-// ===== 天地图 Key =====
-const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';
+// 纯色底图：匹配 LaTeX PKbg #F7F0F2，不加载任何瓦片底图
+map.getContainer().style.background = '#F7F0F2';
 
-// 天地图矢量 (HTTP - 避免 HTTPS 混合内容问题)
-const tdtVec = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=' + TK, {
-  subdomains: ['0','1','2','3','4','5','6','7'],
-  attribution: '&copy; 天地图',
-  maxZoom: 18,
-});
-const tdtCva = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=' + TK, {
-  subdomains: ['0','1','2','3','4','5','6','7'],
-  maxZoom: 18,
-});
-
-// 天地图影像
-const tdtImg = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=' + TK, {
-  subdomains: ['0','1','2','3','4','5','6','7'],
-  attribution: '&copy; 天地图',
-  maxZoom: 18,
-});
-const tdtCia = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=' + TK, {
-  subdomains: ['0','1','2','3','4','5','6','7'],
-  maxZoom: 18,
-});
-
-const tdtVector = L.layerGroup([tdtVec, tdtCva]);
-const tdtSatellite = L.layerGroup([tdtImg, tdtCia]);
-
-// 备用底图 (CARTO, HTTPS)
-const cartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO',
-  maxZoom: 19,
-});
-
-// 默认尝试天地图，失败则降级到 CARTO
-tdtVec.on('tileerror', function() {
-  if (!map.hasLayer(cartoLight)) {
-    cartoLight.addTo(map);
-    console.warn('天地图加载失败，已切换到 CARTO 备用底图');
-  }
-});
-tdtVector.addTo(map);
-
-// 底图切换
-L.control.layers(
-  { '天地图矢量': tdtVector, '天地图影像': tdtSatellite, 'CARTO浅色(备用)': cartoLight },
-  null,
-  { position: 'bottomright', collapsed: true }
-).addTo(map);
+// 如需瓦片底图，取消下面注释：
+// const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';
+// const tdtVec = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=' + TK, { subdomains: ['0','1','2','3','4','5','6','7'], maxZoom: 18 });
+// const tdtCva = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=' + TK, { subdomains: ['0','1','2','3','4','5','6','7'], maxZoom: 18 });
+// L.layerGroup([tdtVec, tdtCva]).addTo(map);
 
 // ======================== 图层容器 ========================
 const layerGroups = {};
