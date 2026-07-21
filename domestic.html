@@ -204,11 +204,11 @@ const KDE_COLORS = [PK.levelA, PK.levelB, PK.levelC, PK.levelD, PK.levelE, PK.le
 // OD线: Jenks 5级 (按 volume_sim)
 // OD线: 显著加深加粗版
 const OD_CLASSES = [
-  { max: 1000,  color: PK.levelE, weight: 1.0, opacity: 0.72 },
-  { max: 3000,  color: PK.levelF, weight: 1.5, opacity: 0.72 },
-  { max: 6000,  color: PK.accent, weight: 2.0, opacity: 0.74 },
-  { max: 9000,  color: '#601020', weight: 2.5, opacity: 0.74 },
-  { max: Infinity, color: '#3d0818', weight: 3.0, opacity: 0.76 },
+  { max: 1000,  color: PK.levelE, weight: 1.8, opacity: 0.76 },
+  { max: 3000,  color: PK.levelF, weight: 2.5, opacity: 0.76 },
+  { max: 6000,  color: PK.accent, weight: 3.2, opacity: 0.78 },
+  { max: 9000,  color: '#601020', weight: 4.0, opacity: 0.78 },
+  { max: Infinity, color: '#3d0818', weight: 5.0, opacity: 0.80 },
 ];
 
 // 定价权: 3级唯一值
@@ -362,7 +362,7 @@ function createLabels(geojson) {
     const label = L.marker(latlng, {
       icon: L.divIcon({
         className: 'leaflet-label',
-        html: `<div style="font-size:10px;color:#802838;text-shadow:0 0 4px #F7F0F2,0 0 4px #fff;white-space:nowrap;font-weight:600;pointer-events:none;">${f.properties.name}</div>`,
+        html: `<div style="font-size:13px;color:#802838;text-shadow:0 0 4px #fff;white-space:nowrap;font-weight:700;pointer-events:none;">${f.properties.name}</div>`,
         iconAnchor: [-10, 8],
       }),
       interactive: false,
@@ -577,7 +577,7 @@ async function init() {
     // 城市名标注
     L.marker(ll, {
       icon: L.divIcon({
-        className: '', html: `<div style="font-size:10px;color:#802838;font-weight:600;white-space:nowrap;text-shadow:0 0 3px #fff;">${p.dest_city || ''}</div>`,
+        className: '', html: `<div style="font-size:13px;color:#802838;font-weight:700;white-space:nowrap;text-shadow:0 0 3px #fff;">${p.dest_city || ''}</div>`,
         iconAnchor: [-10, -10],
       }), interactive: false,
     }).addTo(destCities);
