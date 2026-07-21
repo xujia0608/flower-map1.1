@@ -255,7 +255,7 @@ function styleKDE(feature) {
 }
 
 function styleOD(feature) {
-  const vol = feature.properties.volume_sim || 0;
+  const vol = feature.properties.volume || 0;
   for (const cls of OD_CLASSES) {
     if (vol <= cls.max) {
       return { color: cls.color, weight: cls.weight, opacity: cls.opacity };
@@ -295,8 +295,12 @@ function bindKDE(feature, layer) {
 
 function bindOD(feature, layer) {
   const p = feature.properties;
+  const vol = typeof p.volume === 'number' ? p.volume.toLocaleString() : '-';
+  const expVal = typeof p.export_value === 'number' && p.export_value > 0
+    ? `<br>📊 ${p.country || ''}鲜切花出口额: ${p.export_value.toFixed(0)} 万美元 (2020)`
+    : (p.country && p.country !== '中国' ? `<br>📊 ${p.country || ''}` : '');
   layer.bindTooltip(
-    `<strong>${p.dest_name || ''}</strong><br>🏙️ ${p.dest_city || ''}<br>📏 ${typeof p.distance_k === 'number' ? p.distance_k.toFixed(1) : '-'} km<br>📦 模拟流量: ${typeof p.volume_sim === 'number' ? p.volume_sim.toLocaleString() : '-'}`,
+    `<strong>${p.dest_name || ''}</strong><br>🏙️ ${p.dest_city || ''} · ${p.country || ''}<br>📏 ${typeof p.distance_k === 'number' ? p.distance_k.toFixed(1) : '-'} km<br>📦 交易流量: ${vol}${expVal}`,
     { direction: 'top', sticky: true }
   );
 }
@@ -348,7 +352,7 @@ function addDounanStar() {
     iconAnchor: [11, 11],
   });
   L.marker(DOUNAN_COORDS, { icon: starIcon, zIndexOffset: 9999 })
-    .bindTooltip('<strong style="color:#802838;">斗南花拍中心</strong><br>亚洲第一鲜切花拍卖市场', { direction: 'top' })
+    .bindTooltip('<strong style="color:#802838;">斗南花拍中心 (KIFA)</strong><br>2024年交易量: 25.27亿支<br>亚洲第一、世界第二大鲜切花拍卖市场<br><small style="color:#999;">数据来源: KIFA大数据, 2025</small>', { direction: 'top' })
     .addTo(map);
 }
 
@@ -408,7 +412,7 @@ async function init() {
 
   // --- 信息栏 ---
   document.getElementById('infoBar').innerHTML =
-    `要素: IDW ${idwData.features.length}面 · OD ${odData.features.length}线 · 定价权 ${tierData.features.length}点 · 核密度 ${(layerGroups['kde'] && layerGroups['kde'].getLayers) ? layerGroups['kde'].getLayers().length : 8}面`;
+    `要素: IDW ${idwData.features.length}面 · OD ${odData.features.length}线 · 定价权 ${tierData.features.length}点 · 核密度 8面 | 数据来源: 中国海关总署/KIFA/中国花卉协会`;
 
   // --- 图层切换 ---
   function bindToggle(cbId, key, legendIds) {
