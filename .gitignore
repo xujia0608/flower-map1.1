@@ -1,0 +1,32 @@
+# ArcGIS lock files
+*.sr.lock
+*.lock
+
+# ArcGIS project files (large, not needed for web map)
+*.aprx
+ImportLog/
+
+# Shapefiles (converted to GeoJSON)
+B1_全球辐射/**/*.shp
+B1_全球辐射/**/*.shx
+B1_全球辐射/**/*.dbf
+B1_全球辐射/**/*.prj
+B1_全球辐射/**/*.cpg
+B2_供应链/**/*.shp
+B2_供应链/**/*.shx
+B2_供应链/**/*.dbf
+B3_三产融合/**/
+
+# Python scripts (not needed for web)
+*.py
+
+# Images (large PNGs)
+B1_全球辐射/*.png
+
+# Reports
+*.pdf
+*.tex
+
+# IDE
+.vscode/
+.idea/

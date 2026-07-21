@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球花卉产业辐射与定价权 · 交互地图</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+
+  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100vh; z-index: 1; }
+
+  /* ---- 顶部标题栏 ---- */
+  .title-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
+    background: linear-gradient(135deg, rgba(139,69,19,0.92) 0%, rgba(220,20,60,0.88) 100%);
+    color: #fff; padding: 10px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    pointer-events: auto;
+  }
+  .title-bar h1 { font-size: 1.3em; font-weight: 600; letter-spacing: 2px; }
+  .title-bar .subtitle { font-size: 0.8em; opacity: 0.9; margin-left: 12px; }
+
+  /* ---- 图层面板 ---- */
+  .layer-panel {
+    position: absolute; top: 80px; right: 12px; z-index: 1000;
+    background: rgba(255,255,255,0.95); border-radius: 10px;
+    padding: 14px 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    min-width: 200px; font-size: 14px;
+    pointer-events: auto;
+  }
+  .layer-panel h3 { font-size: 15px; margin-bottom: 10px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+  .layer-panel label { display: flex; align-items: center; padding: 5px 0; cursor: pointer; gap: 8px; }
+  .layer-panel label:hover { color: #c0392b; }
+  .layer-panel input[type="checkbox"] { accent-color: #c0392b; width: 16px; height: 16px; }
+  .layer-dot { width: 14px; height: 14px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+
+  /* ---- 图例面板 ---- */
+  .legend-panel {
+    position: absolute; bottom: 30px; left: 12px; z-index: 1000;
+    background: rgba(255,255,255,0.95); border-radius: 10px;
+    padding: 12px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    font-size: 13px; pointer-events: auto;
+    display: none; /* shown when layer is active */
+  }
+  .legend-panel.visible { display: block; }
+  .legend-panel h4 { margin-bottom: 8px; color: #333; }
+  .legend-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+  .legend-swatch { width: 20px; height: 14px; border-radius: 2px; flex-shrink: 0; }
+  .legend-swatch.circle { width: 12px; height: 12px; border-radius: 50%; margin: 0 4px; }
+
+  /* ---- 信息提示 ---- */
+  .tooltip-custom {
+    background: rgba(255,255,255,0.96); border: none; border-radius: 8px;
+    padding: 10px 14px; box-shadow: 0 3px 14px rgba(0,0,0,0.2);
+    font-size: 13px; line-height: 1.6;
+  }
+  .tooltip-custom strong { color: #c0392b; }
+
+  /* ---- 底部信息栏 ---- */
+  .info-bar {
+    position: absolute; bottom: 12px; right: 12px; z-index: 1000;
+    background: rgba(0,0,0,0.65); color: #fff; border-radius: 6px;
+    padding: 6px 12px; font-size: 11px; pointer-events: none;
+  }
+
+  /* 响应式 */
+  @media (max-width: 640px) {
+    .title-bar h1 { font-size: 1em; }
+    .layer-panel { top: 60px; right: 6px; padding: 10px 12px; min-width: 160px; font-size: 12px; }
+    .legend-panel { bottom: 10px; left: 6px; font-size: 11px; padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="title-bar">
+  <div>
+    <h1>🌸 全球花卉产业辐射与定价权</h1>
+    <span class="subtitle">Flower Industry Global Radiation &amp; Pricing Power</span>
+  </div>
+</div>
+
+<div class="layer-panel" id="layerPanel">
+  <h3>🗺️ 图层控制</h3>
+  <label><input type="checkbox" id="toggleIDW" checked> <span class="layer-dot" style="background:#e74c3c;"></span> 辐射密度面 (IDW)</label>
+  <label><input type="checkbox" id="toggleKDE"> <span class="layer-dot" style="background:#f39c12;"></span> 核密度分析</label>
+  <label><input type="checkbox" id="toggleOD" checked> <span class="layer-dot" style="background:#3498db;"></span> 贸易网络线 (OD)</label>
+  <label><input type="checkbox" id="toggleTier" checked> <span class="layer-dot" style="background:#2ecc71;"></span> 定价权等级点</label>
+  <label style="margin-top:6px;border-top:1px solid #eee;padding-top:6px;"><input type="checkbox" id="toggleLabels" checked> 🏷️ 显示市场名标签</label>
+</div>
+
+<!-- IDW 辐射密度图例 -->
+<div class="legend-panel visible" id="legendIDW">
+  <h4>📊 辐射密度等级 (IDW插值)</h4>
+  <div class="legend-row"><span class="legend-swatch" style="background:#ffcccc;"></span> 等级1 — 低密度</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#e74c3c;"></span> 等级2</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#c0392b;"></span> 等级3</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#922b21;"></span> 等级4 — 高密度</div>
+</div>
+
+<!-- 核密度图例 -->
+<div class="legend-panel" id="legendKDE">
+  <h4>🔬 核密度分析</h4>
+  <div class="legend-row"><span class="legend-swatch" style="background:#fdebd0;"></span> 等级1</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#f39c12;"></span> 等级2</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#e67e22;"></span> 等级3</div>
+</div>
+
+<!-- 定价权图例 -->
+<div class="legend-panel visible" id="legendTier">
+  <h4>⭐ 定价权等级</h4>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#e74c3c;"></span> 核心枢纽</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#f39c12;"></span> 区域中心</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#3498db;"></span> 普通市场</div>
+</div>
+
+<!-- OD网络图例 -->
+<div class="legend-panel" id="legendOD">
+  <h4>🔗 贸易流量 (模拟)</h4>
+  <div class="legend-row"><span class="legend-swatch" style="background:#3498db;opacity:0.5;height:2px;"></span> 低量 (&lt;5000)</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#2980b9;opacity:0.7;height:3px;"></span> 中量 (5000–10000)</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#1a5276;height:4px;"></span> 高量 (&gt;10000)</div>
+</div>
+
+<div class="info-bar" id="infoBar">要素加载中…</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ======================== 基础底图 ========================
+const map = L.map('map', {
+  center: [30, 104],
+  zoom: 5,
+  minZoom: 2,
+  maxZoom: 18,
+  zoomControl: true,
+});
+
+// 浅色底图
+const lightTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  maxZoom: 19,
+});
+lightTile.addTo(map);
+
+// 卫星图底图
+const satelliteTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: '&copy; Esri &mdash; Sources: Esri, USGS, NOAA',
+  maxZoom: 19,
+});
+
+// 底图切换
+const baseMaps = { '浅色地图': lightTile, '卫星影像': satelliteTile };
+L.control.layers(baseMaps, null, { position: 'bottomright', collapsed: true }).addTo(map);
+
+// ======================== 配色方案 ========================
+const IDW_COLORS = ['#ffcccc', '#e74c3c', '#c0392b', '#922b21'];
+const KDE_COLORS = ['#fdebd0', '#f39c12', '#e67e22'];
+const TIER_COLORS = { '核心枢纽': '#e74c3c', '区域中心': '#f39c12', '区域市场': '#3498db' };
+const TIER_RADIUS = { '核心枢纽': 9, '区域中心': 7, '区域市场': 5 };
+const TIER_WEIGHT  = { '核心枢纽': 3, '区域中心': 2, '区域市场': 1 };
+
+// ======================== 图层容器 ========================
+const layerGroups = {};
+const allLabels = L.layerGroup().addTo(map);
+
+// ======================== 加载函数 ========================
+async function loadGeoJSON(url) {
+  const resp = await fetch(url);
+  return resp.json();
+}
+
+function styleIDW(feature) {
+  const level = (feature.properties.level || 1) - 1;
+  return {
+    fillColor: IDW_COLORS[Math.min(level, IDW_COLORS.length - 1)],
+    fillOpacity: 0.35,
+    color: IDW_COLORS[Math.min(level, IDW_COLORS.length - 1)],
+    weight: 1.5,
+    opacity: 0.7,
+  };
+}
+
+function styleKDE(feature) {
+  const level = (feature.properties.level || 1) - 1;
+  return {
+    fillColor: KDE_COLORS[Math.min(level, KDE_COLORS.length - 1)],
+    fillOpacity: 0.4,
+    color: KDE_COLORS[Math.min(level, KDE_COLORS.length - 1)],
+    weight: 1.5,
+    opacity: 0.7,
+  };
+}
+
+function styleOD(feature) {
+  const vol = feature.properties.volume_sim || 5000;
+  let color, weight, opacity;
+  if (vol < 5000)      { color = '#3498db'; weight = 1.2; opacity = 0.45; }
+  else if (vol < 10000) { color = '#2980b9'; weight = 2.0; opacity = 0.65; }
+  else                  { color = '#1a5276'; weight = 2.8; opacity = 0.80; }
+  return { color, weight, opacity };
+}
+
+function styleTier(feature) {
+  const tl = feature.properties.tier_label || '区域市场';
+  const color = TIER_COLORS[tl] || '#3498db';
+  return {
+    radius: TIER_RADIUS[tl] || 6,
+    fillColor: color,
+    color: '#fff',
+    weight: TIER_WEIGHT[tl] || 1.5,
+    fillOpacity: 0.85,
+  };
+}
+
+// ======================== Popup / Tooltip ========================
+function popupIDW(feature, layer) {
+  const p = feature.properties;
+  layer.bindTooltip(
+    `<strong>${p.label || ''}</strong><br>密度阈值: ${p.density_th?.toExponential(4) || '-'}<br>等级: ${p.level}`,
+    { direction: 'top', className: 'tooltip-custom', sticky: true }
+  );
+}
+
+function popupKDE(feature, layer) {
+  const p = feature.properties;
+  layer.bindTooltip(
+    `<strong>${p.label || ''}</strong><br>密度阈值: ${p.density_th?.toExponential(4) || '-'}<br>等级: ${p.level}`,
+    { direction: 'top', className: 'tooltip-custom', sticky: true }
+  );
+}
+
+function popupOD(feature, layer) {
+  const p = feature.properties;
+  layer.bindTooltip(
+    `<strong>${p.dest_name || ''}</strong><br>🏙️ 城市: ${p.dest_city || ''}<br>📏 距离: ${p.distance_k?.toFixed(1)} km<br>📦 模拟流量: ${p.volume_sim?.toLocaleString() || '-'}`,
+    { direction: 'top', className: 'tooltip-custom', sticky: true }
+  );
+}
+
+function popupTier(feature, layer) {
+  const p = feature.properties;
+  layer.bindPopup(
+    `<strong style="font-size:15px;">${p.name || ''}</strong>
+     <em>${p.name_en || ''}</em><br><br>
+     📍 ${p.city || ''}, ${p.country || ''}<br>
+     🏷️ ${p.type || ''}<br>
+     ⭐ 等级: <strong>${p.tier_label || p.tier || ''}</strong><br>
+     📝 ${p.note || ''}`,
+    { className: 'tooltip-custom', maxWidth: 280 }
+  );
+}
+
+// ======================== 创建标签 ========================
+function createLabels(geojson) {
+  geojson.features.forEach(f => {
+    if (!f.geometry || !f.properties.name) return;
+    const coords = f.geometry.coordinates;
+    let latlng;
+    if (f.geometry.type === 'Point') {
+      latlng = [coords[1], coords[0]];
+    } else if (f.geometry.type === 'LineString') {
+      // label at midpoint
+      const mid = Math.floor(coords.length / 2);
+      latlng = [coords[mid][1], coords[mid][0]];
+    } else return;
+    const label = L.marker(latlng, {
+      icon: L.divIcon({
+        className: 'leaflet-label',
+        html: `<div style="font-size:10px;color:#333;text-shadow:0 0 4px #fff;white-space:nowrap;font-weight:500;pointer-events:none;">${f.properties.name}</div>`,
+        iconAnchor: [0, 8],
+      }),
+      interactive: false,
+    });
+    allLabels.addLayer(label);
+  });
+}
+
+// ======================== 主加载 ========================
+async function init() {
+  const base = 'geojson/';
+
+  // --- IDW 插值 ---
+  const idwData = await loadGeoJSON(base + 'B1_IDW插值.geojson');
+  const idwLayer = L.geoJSON(idwData, {
+    style: styleIDW,
+    onEachFeature: popupIDW,
+  });
+  layerGroups['idw'] = idwLayer;
+  idwLayer.addTo(map);
+
+  // --- 核密度 ---
+  const kdeData = await loadGeoJSON(base + 'B1_核密度分析.geojson');
+  const kdeLayer = L.geoJSON(kdeData, {
+    style: styleKDE,
+    onEachFeature: popupKDE,
+  });
+  layerGroups['kde'] = kdeLayer;
+
+  // --- OD 网络线 ---
+  const odData = await loadGeoJSON(base + 'B1_OD网络线.geojson');
+  const odLayer = L.geoJSON(odData, {
+    style: styleOD,
+    onEachFeature: popupOD,
+  });
+  layerGroups['od'] = odLayer;
+  odLayer.addTo(map);
+
+  // --- 定价权等级 ---
+  const tierData = await loadGeoJSON(base + 'B1_定价权等级.geojson');
+  const tierLayer = L.geoJSON(tierData, {
+    pointToLayer: function(feature, latlng) {
+      return L.circleMarker(latlng, styleTier(feature));
+    },
+    onEachFeature: popupTier,
+  });
+  layerGroups['tier'] = tierLayer;
+  tierLayer.addTo(map);
+
+  // 生成标签
+  createLabels(tierData);
+
+  // 缩放到全部数据范围
+  const allBounds = L.latLngBounds([]);
+  [idwData, kdeData, odData, tierData].forEach(d => {
+    d.features.forEach(f => {
+      if (f.geometry) {
+        if (f.geometry.type === 'Point') {
+          allBounds.extend([f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        } else if (f.geometry.coordinates) {
+          // rough extend
+          const flatten = (arr) => {
+            if (typeof arr[0] === 'number') {
+              if (arr.length >= 2) allBounds.extend([arr[1], arr[0]]);
+              return;
+            }
+            arr.forEach(flatten);
+          };
+          flatten(f.geometry.coordinates);
+        }
+      }
+    });
+  });
+  if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40] });
+
+  // 更新信息栏
+  document.getElementById('infoBar').innerHTML =
+    `要素: IDW ${idwData.features.length}面 · OD ${odData.features.length}线 · 定价权 ${tierData.features.length}点 · 核密度 ${kdeData.features.length}面`;
+
+  // --- 图层切换逻辑 ---
+  function bindToggle(checkboxId, layerKey, legendIds) {
+    const cb = document.getElementById(checkboxId);
+    cb.addEventListener('change', () => {
+      const lg = layerGroups[layerKey];
+      if (!lg) return;
+      if (cb.checked) {
+        lg.addTo(map);
+        if (layerKey === 'tier') allLabels.addTo(map);
+      } else {
+        map.removeLayer(lg);
+        if (layerKey === 'tier') map.removeLayer(allLabels);
+      }
+      // 图例联动
+      legendIds.forEach(lid => {
+        const el = document.getElementById(lid);
+        if (el) {
+          el.classList.toggle('visible', cb.checked);
+          // 确保至少有一个面板可见时的逻辑
+        }
+      });
+      updateLegends();
+    });
+  }
+
+  bindToggle('toggleIDW',  'idw',  ['legendIDW']);
+  bindToggle('toggleKDE', 'kde',  ['legendKDE']);
+  bindToggle('toggleOD',  'od',   ['legendOD']);
+  bindToggle('toggleTier','tier', ['legendTier']);
+
+  document.getElementById('toggleLabels').addEventListener('change', function() {
+    if (this.checked) { allLabels.addTo(map); }
+    else              { map.removeLayer(allLabels); }
+  });
+
+  // 初始图例状态
+  updateLegends();
+}
+
+function updateLegends() {
+  const idwOn  = document.getElementById('toggleIDW').checked;
+  const kdeOn  = document.getElementById('toggleKDE').checked;
+  const odOn   = document.getElementById('toggleOD').checked;
+  const tierOn = document.getElementById('toggleTier').checked;
+  document.getElementById('legendIDW').classList.toggle('visible', idwOn);
+  document.getElementById('legendKDE').classList.toggle('visible', kdeOn);
+  document.getElementById('legendOD').classList.toggle('visible', odOn);
+  document.getElementById('legendTier').classList.toggle('visible', tierOn);
+}
+
+init().catch(err => { console.error(err); alert('地图加载失败，请确认 geojson/ 目录存在。\n' + err.message); });
+</script>
+</body>
+</html>
