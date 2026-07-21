@@ -349,6 +349,39 @@ function addDounanStar() {
 async function init() {
   const base = 'geojson/';
 
+  // --- 底图：大洲面 (PKbg填充 + PKboundary描边) ---
+  let continentLayer = L.layerGroup();
+  try {
+    const continentData = await loadJSON(base + 'continent.geojson');
+    continentLayer = L.geoJSON(continentData, {
+      style: { fillColor: PK.bg, fillOpacity: 1, color: PK.boundary, weight: 0.6, opacity: 0.7 },
+      interactive: false,
+    });
+  } catch(e) { console.warn('大洲加载失败:', e); }
+  continentLayer.addTo(map);
+
+  // --- 底图：中国国界 ---
+  let bountLayer = L.layerGroup();
+  try {
+    const bountData = await loadJSON(base + 'bount_arc.geojson');
+    bountLayer = L.geoJSON(bountData, {
+      style: { color: PK.boundary, weight: 1.0, opacity: 0.8, fill: false },
+      interactive: false,
+    });
+  } catch(e) { console.warn('国界加载失败:', e); }
+  bountLayer.addTo(map);
+
+  // --- 底图：海岸线 ---
+  let coastlineLayer = L.layerGroup();
+  try {
+    const coastData = await loadJSON(base + 'coastline.geojson');
+    coastlineLayer = L.geoJSON(coastData, {
+      style: { color: PK.boundary, weight: 0.5, opacity: 0.5, fill: false },
+      interactive: false,
+    });
+  } catch(e) { console.warn('海岸线加载失败:', e); }
+  coastlineLayer.addTo(map);
+
   // --- IDW 插值面 ---
   const idwData = await loadJSON(base + 'B1_IDW插值.geojson');
   const idwLayer = L.geoJSON(idwData, { style: styleIDW, onEachFeature: bindIDW });
