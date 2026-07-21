@@ -359,17 +359,26 @@ function createLabels(geojson) {
     } else {
       return;
     }
-    const label = L.marker(latlng, {
-      icon: L.divIcon({
-        className: 'leaflet-label',
-        html: `<div style="font-size:13px;color:#802838;text-shadow:0 0 4px #fff;white-space:nowrap;font-weight:700;pointer-events:none;">${f.properties.name}</div>`,
-        iconAnchor: [-10, 8],
-      }),
-      interactive: false,
+    const icon = L.divIcon({
+      className: 'leaflet-label',
+      html: `<div class="zoom-label" style="color:#802838;text-shadow:0 0 4px #fff;white-space:nowrap;font-weight:700;pointer-events:none;">${f.properties.name}</div>`,
+      iconAnchor: [-10, 8],
     });
+    const label = L.marker(latlng, { icon, interactive: false });
     allLabels.addLayer(label);
   });
 }
+
+// 所有标注随缩放变化
+function updateAllLabelSizes() {
+  const z = map.getZoom();
+  const size = Math.max(9, 6 + z * 1.4);
+  document.querySelectorAll('.zoom-label').forEach(el => {
+    el.style.fontSize = size + 'px';
+  });
+}
+map.on('zoom', updateAllLabelSizes);
+updateAllLabelSizes();
 
 // 斗南中心星标
 function addDounanStar() {
@@ -575,9 +584,9 @@ async function init() {
     }).bindTooltip(`<strong>${p.dest_city || ''}</strong><br>流量: ${(p.volume||0).toLocaleString()}`, { direction: 'top' })
       .addTo(destCities);
     // 城市名标注
-    L.marker(ll, {
+    const cityLabel = L.marker(ll, {
       icon: L.divIcon({
-        className: '', html: `<div style="font-size:13px;color:#802838;font-weight:700;white-space:nowrap;text-shadow:0 0 3px #fff;">${p.dest_city || ''}</div>`,
+        className: '', html: `<div class="zoom-label" style="font-size:11px;color:#802838;font-weight:700;white-space:nowrap;text-shadow:0 0 3px #fff;">${p.dest_city || ''}</div>`,
         iconAnchor: [-10, -10],
       }), interactive: false,
     }).addTo(destCities);
