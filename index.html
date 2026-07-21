@@ -84,7 +84,35 @@
   }
   .leaflet-tooltip strong { color: #943850; }
 
-  /* ---- 底部信息 ---- */
+  /* ---- 发射脉冲动画 ---- */
+  @keyframes pulseRing {
+    0%   { transform: scale(0.3); opacity: 0.9; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+  @keyframes pulseRing2 {
+    0%   { transform: scale(0.3); opacity: 0.7; }
+    100% { transform: scale(2.0); opacity: 0; }
+  }
+  @keyframes flowDash {
+    to { stroke-dashoffset: -28; }
+  }
+  .od-flow {
+    animation: flowDash 1.5s linear infinite;
+  }
+
+  /* 脉冲圈 */
+  .pulse-ring {
+    position: absolute;
+    border: 2px solid #943850;
+    border-radius: 50%;
+    animation: pulseRing 2.5s ease-out infinite;
+    pointer-events: none;
+    z-index: 10000;
+  }
+  .pulse-ring:nth-child(2) {
+    animation: pulseRing2 2.5s ease-out 1.2s infinite;
+    border-color: #BC8090;
+  }
   .info-bar {
     position: absolute; bottom: 12px; right: 12px; z-index: 1000;
     background: rgba(128,40,56,0.78); color: #F7F0F2; border-radius: 6px;
@@ -247,10 +275,22 @@ function styleOD(feature) {
   const vol = feature.properties.volume || 0;
   for (const cls of OD_CLASSES) {
     if (vol <= cls.max) {
-      return { color: cls.color, weight: cls.weight, opacity: cls.opacity };
+      return {
+        color: cls.color, weight: cls.weight, opacity: cls.opacity,
+        dashArray: '8 6',
+      };
     }
   }
-  return { color: PK.levelB, weight: 0.5, opacity: 0.25 };
+  return { color: PK.levelB, weight: 0.5, opacity: 0.25, dashArray: '6 8' };
+}
+
+// OD线流动动画
+function animateODLines(layer) {
+  layer.eachLayer(function(l) {
+    if (l._path) {
+      l._path.classList.add('od-flow');
+    }
+  });
 }
 
 function styleTier(feature) {
@@ -343,6 +383,41 @@ function addDounanStar() {
   L.marker(DOUNAN_COORDS, { icon: starIcon, zIndexOffset: 9999 })
     .bindTooltip('<strong style="color:#802838;">斗南花拍中心 (KIFA)</strong><br>2024年交易量: 25.27亿支<br>亚洲第一、世界第二大鲜切花拍卖市场<br><small style="color:#999;">数据来源: KIFA大数据, 2025</small>', { direction: 'top' })
     .addTo(map);
+
+  // 发射脉冲圈
+  const PulseOverlay = L.Layer.extend({
+    onAdd: function() {
+      const pane = this._pane = document.createElement('div');
+      pane.style.position = 'absolute';
+      pane.style.pointerEvents = 'none';
+      pane.style.zIndex = '9998';
+      this.getPane('overlayPane').appendChild(pane);
+
+      const r1 = document.createElement('div');
+      r1.className = 'pulse-ring';
+      r1.style.width = '60px'; r1.style.height = '60px';
+      r1.style.marginLeft = '-30px'; r1.style.marginTop = '-30px';
+      pane.appendChild(r1);
+
+      const r2 = document.createElement('div');
+      r2.className = 'pulse-ring';
+      r2.style.width = '60px'; r2.style.height = '60px';
+      r2.style.marginLeft = '-30px'; r2.style.marginTop = '-30px';
+      pane.appendChild(r2);
+
+      this._update = () => {
+        const pt = map.latLngToContainerPoint(DOUNAN_COORDS);
+        pane.style.left = pt.x + 'px';
+        pane.style.top = pt.y + 'px';
+      };
+      map.on('move zoom', this._update);
+      this._update();
+    },
+    onRemove: function() {
+      map.off('move zoom', this._update);
+    }
+  });
+  new PulseOverlay().addTo(map);
 }
 
 // ======================== 主加载 ========================
@@ -401,6 +476,7 @@ async function init() {
   const odLayer = L.geoJSON(odData, { style: styleOD, onEachFeature: bindOD });
   layerGroups['od'] = odLayer;
   odLayer.addTo(map);
+  animateODLines(odLayer);
 
   // --- 定价权等级点 ---
   const tierData = await loadJSON(base + 'B1_定价权等级.geojson');
