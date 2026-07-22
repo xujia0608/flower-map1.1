@@ -24,6 +24,18 @@
      PKlink:     #C08090  OD连线
   */
 
+  /* ---- 顶部标题栏 ---- */
+  .title-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
+    background: linear-gradient(135deg, rgba(148,56,80,0.94) 0%, rgba(128,40,56,0.96) 100%);
+    color: #fff; padding: 10px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(128,40,56,0.35);
+    pointer-events: auto;
+  }
+  .title-bar h1 { font-size: 1.3em; font-weight: 600; letter-spacing: 2px; }
+  .title-bar .subtitle { font-size: 0.8em; opacity: 0.85; margin-left: 12px; color: #E2C4CC; }
+
   /* ---- 图层面板 ---- */
   .layer-panel {
     position: absolute; top: 80px; right: 12px; z-index: 1000;
@@ -104,6 +116,12 @@
     background: rgba(188,128,144,0.06);
   }
 
+  .info-bar {
+    position: absolute; bottom: 12px; right: 12px; z-index: 1000;
+    background: rgba(128,40,56,0.78); color: #F7F0F2; border-radius: 6px;
+    padding: 6px 14px; font-size: 11px; pointer-events: none;
+  }
+
   @media (max-width: 640px) {
     .title-bar h1 { font-size: 1em; }
     .layer-panel { top: 60px; right: 6px; padding: 10px 12px; min-width: 170px; font-size: 12px; }
@@ -113,26 +131,52 @@
 </head>
 <body>
 
-<div style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:auto;">
-<div class="legend-panel visible" style="display:block !important;">
-  <h4>辐射密度等级 (IDW插值)</h4>
+<div class="title-bar">
+  <div>
+    <h1>🌸 国内花卉市场覆盖与集散辐射</h1>
+    <span class="subtitle">Domestic Distribution — 斗南→省会城市</span>
+  </div>
+</div>
+
+<div class="layer-panel" id="layerPanel">
+  <h3>🗺️ 图层控制</h3>
+  <label><input type="checkbox" id="toggleIDW" checked> <span class="layer-dot" style="background:#D0A4B0;"></span> 辐射密度面 (IDW插值)</label>
+<label><input type="checkbox" id="toggleOD" checked> <span class="layer-dot" style="background:#C08090;"></span> 贸易网络线 (OD)</label>
+  <label><input type="checkbox" id="toggleTier" checked> <span class="layer-dot circle" style="background:#943850;"></span> 定价权等级点</label>
+  <label style="margin-top:6px;border-top:1px solid #F0DCE2;padding-top:6px;"><input type="checkbox" id="toggleLabels" checked> 🏷️ 显示市场名称标注</label>
+</div>
+
+<div class="legend-wrap" style="position:absolute;bottom:12px;left:12px;z-index:1000;display:flex;gap:6px;pointer-events:none;">
+<div style="pointer-events:auto;position:relative;">
+<!-- IDW 辐射密度图例 -->
+<div class="legend-panel visible" id="legendIDW">
+  <h4>📊 辐射密度等级 (IDW插值)</h4>
   <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1 — 低密度</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4 — 高密度</div>
-  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
-  <h4>核密度分析</h4>
-  <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 等级5 — 最高密度</div>
-  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
-  <h4>国内定价权等级</h4>
+</div>
+
+<!-- OD网络图例 -->
+<div class="legend-panel visible" id="legendOD">
+  <h4>🔗 贸易流量分级 (OD网络)</h4>
+  <div class="legend-row"><span class="legend-line" style="border-top:1px solid #A8586C;"></span> ≤1000</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #943850;"></span> ≤3000</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:2px solid #802838;"></span> ≤6000</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:2.5px solid #601020;"></span> ≤9000</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:3px solid #3d0818;"></span> >9000</div>
+</div>
+
+<!-- 定价权图例 -->
+<div class="legend-panel visible" id="legendTier">
+  <h4>⭐ 国内定价权等级</h4>
   <div class="legend-row"><span class="legend-swatch circle" style="background:#943850;width:14px;height:14px;"></span> 核心枢纽</div>
   <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:11px;height:11px;"></span> 区域中心</div>
 </div>
-</div>
+
+</div></div>
+
+<div class="info-bar" id="infoBar">要素加载中…</div>
 
 <div id="map"></div>
 
@@ -504,15 +548,13 @@ async function init() {
   const idwLayer = L.geoJSON(idwData, { style: styleIDW, onEachFeature: bindIDW });
   layerGroups['idw'] = idwLayer;
   idwLayer.addTo(map);
-  // all layers visible by default
 
-  // --- 核密度面 ---
-  let kdeLayer = L.layerGroup();
-  try {
-    const kdeData = await loadJSON(base + 'kernel_density.geojson');
-    kdeLayer = L.geoJSON(kdeData, { style: styleKDE, onEachFeature: bindKDE });
-  } catch(e) { console.warn('核密度分析加载失败:', e); }
-  layerGroups['kde'] = kdeLayer;
+  // --- OD 网络线 ---
+  const odData = await loadJSON(base + 'od_domestic.geojson');
+  const odLayer = L.geoJSON(odData, { style: styleOD, onEachFeature: bindOD });
+  layerGroups['od'] = odLayer;
+  odLayer.addTo(map);
+  createParticleEffect(odLayer);
 
   // --- 定价权等级点 (仅国内) ---
   const tierData = await loadJSON(base + 'pricing_power.geojson');
@@ -528,38 +570,7 @@ async function init() {
   layerGroups['tier'] = tierLayer;
   tierLayer.addTo(map);
 
-  // --- 全国花卉市场点 ---
-  let natLayer = L.layerGroup();
-  try {
-    const natData = await loadJSON(base + 'flower_markets_national.geojson');
-    natLayer = L.geoJSON(natData, {
-      pointToLayer: function(f, ll) { return L.circleMarker(ll, { radius: 3, fillColor: '#943850', fillOpacity: 0.7, color: '#fff', weight: 1.2, pane: 'markerPane' }); },
-      onEachFeature: function(f, layer) {
-        var p = f.properties;
-        layer.bindTooltip('<strong>' + (p.name||'') + '</strong><br>' + (p.city||'') + ' ' + (p.address||''), { direction: 'top' });
-      },
-    });
-  } catch(e) { console.warn('全国市场点加载失败:', e); }
-  layerGroups['nat'] = natLayer;
-  natLayer.addTo(map);
-  
-  // --- 云南花卉市场点 ---
-  let ynLayer = L.layerGroup();
-  try {
-    const ynData = await loadJSON(base + 'flower_markets_yn.geojson');
-    ynLayer = L.geoJSON(ynData, {
-      pointToLayer: function(f, ll) { return L.circleMarker(ll, { radius: 5, fillColor: '#943850', fillOpacity: 0.85, color: '#fff', weight: 1.5, pane: 'markerPane' }); },
-      onEachFeature: function(f, layer) {
-        var p = f.properties;
-        layer.bindTooltip('<strong>' + (p.name||'') + '</strong><br>' + (p.city||'') + ' ' + (p.address||''), { direction: 'top' });
-      },
-    });
-  } catch(e) { console.warn('云南市场点加载失败:', e); }
-  layerGroups['yn'] = ynLayer;
-  ynLayer.addTo(map);
-  
   // 国内终点城市圆点 (深色小点 + 标注)
-  const odData = await loadJSON(base + 'od_domestic.geojson');
   const destCities = L.layerGroup();
   odData.features.forEach(f => {
     const coords = f.geometry.coordinates;
@@ -587,14 +598,44 @@ async function init() {
   // 国内视图：已在上方 fitBounds 锁定中国范围
   // (不执行全局 fitBounds)
 
+  // --- 信息栏 ---
+  document.getElementById('infoBar').innerHTML =
+    `要素: IDW ${idwData.features.length}面 · OD ${odData.features.length}线 · 定价权 ${tierData.features.length}点 · 核密度 8面 | 国内OD: 24省会城市 | 数据来源: KIFA/中国花卉协会`;
 
-
+  // --- 图层切换 ---
+  function bindToggle(cbId, key, legendIds) {
+    const cb = document.getElementById(cbId);
+    if (!cb) return;
+    cb.addEventListener('change', () => {
+      const lg = layerGroups[key];
+      if (!lg) return;
+      if (cb.checked) {
+        lg.addTo(map);
+        if (key === 'tier') allLabels.addTo(map);
+      } else {
+        map.removeLayer(lg);
+        if (key === 'tier') map.removeLayer(allLabels);
+      }
+      updateLegends();
+    });
   }
+
+  bindToggle('toggleIDW',  'idw',  ['legendIDW']);
+  bindToggle('toggleOD',  'od',   ['legendOD']);
+  bindToggle('toggleTier','tier', ['legendTier']);
+
+  document.getElementById('toggleLabels').addEventListener('change', function() {
+    if (this.checked) { allLabels.addTo(map); }
+    else              { map.removeLayer(allLabels); }
+  });
+
+  updateLegends();
+}
 
 function updateLegends() {
   const pairs = [
     ['toggleIDW',  'legendIDW'],
-    ['toggleKDE', 'legendKDE'],
+    ['toggleOD',  'legendOD'],
     ['toggleTier','legendTier'],
   ];
   pairs.forEach(([cbId, legId]) => {
