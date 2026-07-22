@@ -42,12 +42,12 @@
   /* ---- 图例面板 ---- */
   .legend-panel {
     background: rgba(255,255,255,0.85);
-    padding: 6px 10px;
-    font-size: 12px; pointer-events: auto;
+    padding: 10px 14px;
+    font-size: 15px; pointer-events: auto;
     display: none; max-width: 180px;
   }
   .legend-panel.visible { display: inline-block !important; position: static !important; }
-  .legend-panel h4 { margin-bottom: 4px; color: #802838; font-size: 12px; }
+  .legend-panel h4 { margin-bottom: 6px; color: #802838; font-size: 15px; }
   .legend-row { display: flex; align-items: center; gap: 5px; margin: 1px 0; color: #666; line-height: 1.3; }
   .legend-swatch { width: 22px; height: 15px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
   .legend-swatch.circle { width: 13px; height: 13px; border-radius: 50%; margin: 0 4px; border: none; }
@@ -113,24 +113,28 @@
 </head>
 <body>
 
+<div style="position:absolute;top:12px;right:12px;z-index:1000;pointer-events:none;font-size:48px;color:#802838;text-shadow:0 0 4px #fff;line-height:1;">
+  <div>▲</div><div style="font-size:18px;text-align:center;font-weight:700;">N</div>
+</div>
+
 <div style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:auto;">
 <div class="legend-panel visible" style="display:block !important;">
-  <h4>辐射密度等级 (IDW插值)</h4>
-  <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1 — 低密度</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4 — 高密度</div>
-  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
   <h4>核密度分析</h4>
-  <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 等级5 — 最高密度</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 密度1级</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 密度2级</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 密度3级</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 密度4级</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 密度5级</div>
+  <h4>密度等值线</h4>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.8px solid #E2C4CC;"></span> 3.76×10⁻⁵</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.8px solid #D0A4B0;"></span> 7.59×10⁻⁴</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.8px solid #BC8090;"></span> 0.0036</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.8px solid #A8586C;"></span> 0.0104</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.8px solid #943850;"></span> 0.0292</div>
   <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
-  <h4>国内定价权等级</h4>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#943850;width:14px;height:14px;"></span> 核心枢纽</div>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:11px;height:11px;"></span> 区域中心</div>
+  <h4>点位图例</h4>
+  <div class="legend-row"><span class="legend-swatch star" style="color:#802838;">★</span> 斗南花拍中心</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#601020;width:8px;height:8px;"></span> 大型花卉市场</div>
 </div>
 </div>
 
@@ -153,7 +157,7 @@ const PK = {
 };
 
 const IDW_COLORS = [PK.levelA, PK.levelB, PK.levelC, PK.levelD];      // L1-L4
-const KDE_COLORS = [PK.levelA, PK.levelB, PK.levelC, PK.levelD, PK.levelE, PK.levelF]; // L1-L6
+const KDE_COLORS = [PK.levelF, PK.levelE, PK.levelD, PK.levelC, PK.levelB, PK.levelA]; // 深→浅
 
 // OD线: Jenks 5级 (按 volume_sim)
 // OD线: 显著加深加粗版
@@ -184,10 +188,17 @@ const map = L.map('map', {
   maxZoom: 18,
   zoomControl: true,
 });
-map.fitBounds([[18, 73], [54, 135]], { padding: [20, 20] });
+map.fitBounds([[22.5, 99], [27.5, 104]], { padding: [10, 10] });
 
-// 纯色底图：匹配 LaTeX PKbg #F7F0F2，不加载任何瓦片底图
-map.getContainer().style.background = '#ffffff';
+// 高德底图
+L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+  subdomains: '1234',
+  maxZoom: 18,
+  attribution: '&copy; 高德'
+}).addTo(map);
+
+// 右下角比例尺
+L.control.scale({ position: 'bottomright', metric: true, imperial: false, maxWidth: 150 }).addTo(map);
 
 // 如需瓦片底图，取消下面注释：
 // const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';
@@ -217,10 +228,9 @@ function styleKDE(feature) {
   const idx = Math.min(level, KDE_COLORS.length - 1);
   return {
     fillColor: KDE_COLORS[idx],
-    fillOpacity: 0.45,
-    color: KDE_COLORS[Math.min(idx + 1, KDE_COLORS.length - 1)],
-    weight: 1.2,
-    opacity: 0.60,
+    fillOpacity: 0.60,
+    color: 'transparent',
+    weight: 0,
   };
 }
 
@@ -345,55 +355,29 @@ function addDounanStar() {
     .bindTooltip('<strong style="color:#802838;">昆明斗南花拍中心 (KIFA)</strong><br>2024年交易量: 25.27亿支<br>亚洲第一、世界第二大鲜切花拍卖市场<br><small style="color:#999;">数据来源: KIFA大数据, 2025</small>', { direction: 'top' })
     .addTo(map);
 
-  // 发射脉冲圈
-  const PulseOverlay = L.Layer.extend({
-    onAdd: function() {
-      const pane = this._pane = document.createElement('div');
-      pane.style.position = 'absolute';
-      pane.style.top = '0'; pane.style.left = '0';
-      pane.style.pointerEvents = 'none';
-      pane.style.zIndex = '9998';
-      map.getContainer().appendChild(pane);
+  // 发射脉冲圈 (Leaflet CircleMarker, 无抖动)
+  const pulseCircle1 = L.circleMarker(DOUNAN_COORDS, {
+    radius: 0, fill: false, color: '#943850', weight: 3, opacity: 1,
+    pane: 'markerPane', interactive: false,
+  }).addTo(map);
+  const pulseCircle2 = L.circleMarker(DOUNAN_COORDS, {
+    radius: 0, fill: false, color: '#BC8090', weight: 2, opacity: 0.8,
+    pane: 'markerPane', interactive: false,
+  }).addTo(map);
 
-      function getRingSize() {
-        const z = map.getZoom();
-        return Math.max(12, 20 + (z - 3) * 15);
-      }
-      const r1 = document.createElement('div');
-      r1.className = 'pulse-ring';
-      const updateRingSize = () => {
-        const s = getRingSize();
-        r1.style.width = s + 'px'; r1.style.height = s + 'px';
-        r1.style.marginLeft = (-s/2) + 'px'; r1.style.marginTop = (-s/2) + 'px';
-      };
-      updateRingSize();
-      pane.appendChild(r1);
-
-      const r2 = document.createElement('div');
-      r2.className = 'pulse-ring';
-      const updateRingSize2 = () => {
-        const s = getRingSize();
-        r2.style.width = s + 'px'; r2.style.height = s + 'px';
-        r2.style.marginLeft = (-s/2) + 'px'; r2.style.marginTop = (-s/2) + 'px';
-      };
-      updateRingSize2();
-      pane.appendChild(r2);
-
-      this._update = () => {
-        const pt = map.latLngToContainerPoint(DOUNAN_COORDS);
-        pane.style.left = pt.x + 'px';
-        pane.style.top = pt.y + 'px';
-        updateRingSize();
-        updateRingSize2();
-      };
-      map.on('move zoom', this._update);
-      this._update();
-    },
-    onRemove: function() {
-      map.off('move zoom', this._update);
-    }
-  });
-  new PulseOverlay().addTo(map);
+  function animatePulse() {
+    const t = Date.now() / 1000;
+    const z = map.getZoom();
+    const base = Math.max(3, 8 + (z - 3) * 6);
+    const r1 = base * (0.3 + 7.5 * (t % 5 / 5));
+    const r2 = base * (0.3 + 5.5 * ((t + 1.5) % 5 / 5));
+    pulseCircle1.setRadius(r1);
+    pulseCircle1.setStyle({ opacity: Math.max(0, 1 - (t % 5) / 5) });
+    pulseCircle2.setRadius(r2);
+    pulseCircle2.setStyle({ opacity: Math.max(0, 0.8 - ((t + 1.5) % 5) / 5) });
+    requestAnimationFrame(animatePulse);
+  }
+  animatePulse();
 }
 
 // ======================== 发光段沿路径飞行 (Canvas) ========================
@@ -455,67 +439,56 @@ function createParticleEffect(odLayer) {
 async function init() {
   const base = 'geojson/';
 
-  // --- 底图：大洲面 (PKbg填充 + PKboundary描边) ---
-  let continentLayer = L.layerGroup();
+  // --- 云南市界 ---
+  let cityLayer = L.layerGroup();
   try {
-    const continentData = await loadJSON(base + 'continent.geojson');
-    continentLayer = L.geoJSON(continentData, {
-      style: { fillColor: '#fdf6f8', fillOpacity: 1, color: PK.boundary, weight: 0.6, opacity: 0.7 },
+    const cityData = await loadJSON(base + 'yunnan_city.geojson');
+    cityLayer = L.geoJSON(cityData, {
+      style: { color: PK.boundary, weight: 1.0, opacity: 0.9, fillColor: '#ecd8e0', fillOpacity: 1 },
       interactive: false,
     });
-  } catch(e) { console.warn('大洲加载失败:', e); }
-  continentLayer.addTo(map);
+  } catch(e) { console.warn('云南市界加载失败:', e); }
+  cityLayer.addTo(map);
 
-  // --- 底图：中国省份面 (最浅粉色填充) ---
-  let provLayer = L.layerGroup();
+  // --- 云南外轮廓 (与市界同源，完美对齐) ---
+  let ynOutlineLayer = L.layerGroup();
   try {
-    const provData = await loadJSON(base + 'china_provinces.geojson');
-    provLayer = L.geoJSON(provData, {
-      style: { fillColor: '#f6e6ec', fillOpacity: 1, color: 'transparent', weight: 0 },
+    const outlineData = await loadJSON(base + 'yunnan_outline.geojson');
+    ynOutlineLayer = L.geoJSON(outlineData, {
+      style: { color: PK.boundary, weight: 1.2, opacity: 0.95, fill: false },
       interactive: false,
     });
-  } catch(e) { console.warn('省份面加载失败:', e); }
-  provLayer.addTo(map);
+  } catch(e) { console.warn('云南轮廓加载失败:', e); }
+  ynOutlineLayer.addTo(map);
 
-  // --- 底图：中国国界线 ---
-  let chinaLayer = L.layerGroup();
+  // --- 密度等值线 ---
+  let contourLayer = L.layerGroup();
   try {
-    const chinaData = await loadJSON(base + 'china_boundary.geojson');
-    chinaLayer = L.geoJSON(chinaData, {
-      style: { color: PK.boundary, weight: 1.0, opacity: 0.9, fill: false },
+    const contourData = await loadJSON(base + 'contour_lines.geojson');
+    const contourColors = ['#E2C4CC','#D0A4B0','#BC8090','#A8586C','#943850'];
+    contourLayer = L.geoJSON(contourData, {
+      style: function(f) { var lv = (f.properties.level||1)-1; return { color: contourColors[Math.min(lv,4)], weight: 1.8, opacity: 0.85 }; },
       interactive: false,
     });
-  } catch(e) { console.warn('国界线加载失败:', e); }
-  chinaLayer.addTo(map);
-
-  // --- 底图：海岸线 ---
-  let coastlineLayer = L.layerGroup();
-  try {
-    const coastData = await loadJSON(base + 'coastline.geojson');
-    coastlineLayer = L.geoJSON(coastData, {
-      style: { color: PK.boundary, weight: 0.5, opacity: 0.5, fill: false },
-      interactive: false,
-    });
-  } catch(e) { console.warn('海岸线加载失败:', e); }
-  coastlineLayer.addTo(map);
-
-  // --- IDW 插值面 ---
-  const idwData = await loadJSON(base + 'idw.geojson');
-  const idwLayer = L.geoJSON(idwData, { style: styleIDW, onEachFeature: bindIDW });
-  layerGroups['idw'] = idwLayer;
-  idwLayer.addTo(map);
-  // all layers visible by default
+  } catch(e) { console.warn('等值线加载失败:', e); }
+  contourLayer.addTo(map);
 
   // --- 核密度面 ---
   let kdeLayer = L.layerGroup();
   try {
     const kdeData = await loadJSON(base + 'kernel_density.geojson');
-    kdeLayer = L.geoJSON(kdeData, { style: styleKDE, onEachFeature: bindKDE });
+    kdeLayer = L.geoJSON(kdeData, { style: styleKDE, onEachFeature: bindKDE, smoothFactor: 0 });
   } catch(e) { console.warn('核密度分析加载失败:', e); }
   layerGroups['kde'] = kdeLayer;
+  kdeLayer.addTo(map);
 
   // --- 定价权等级点 (仅国内) ---
   const tierData = await loadJSON(base + 'pricing_power.geojson');
+  // 去除广州、北京、上海的定价权点
+  tierData.features = tierData.features.filter(f => {
+    var c = f.properties.city || '';
+    return c.indexOf('广州') < 0 && c.indexOf('北京') < 0 && c.indexOf('上海') < 0;
+  });
   const tierDomestic = tierData.features.filter(f => f.properties.country === '中国');
   const tierLayer = L.geoJSON({ type: 'FeatureCollection', features: tierDomestic }, {
     pointToLayer: function(feature, latlng) {
@@ -528,57 +501,95 @@ async function init() {
   layerGroups['tier'] = tierLayer;
   tierLayer.addTo(map);
 
-  // --- 全国花卉市场点 ---
-  let natLayer = L.layerGroup();
-  try {
-    const natData = await loadJSON(base + 'flower_markets_national.geojson');
-    natLayer = L.geoJSON(natData, {
-      pointToLayer: function(f, ll) { return L.circleMarker(ll, { radius: 3, fillColor: '#943850', fillOpacity: 0.7, color: '#fff', weight: 1.2, pane: 'markerPane' }); },
-      onEachFeature: function(f, layer) {
-        var p = f.properties;
-        layer.bindTooltip('<strong>' + (p.name||'') + '</strong><br>' + (p.city||'') + ' ' + (p.address||''), { direction: 'top' });
-      },
-    });
-  } catch(e) { console.warn('全国市场点加载失败:', e); }
-  layerGroups['nat'] = natLayer;
-  natLayer.addTo(map);
-  
-  // --- 云南花卉市场点 ---
-  let ynLayer = L.layerGroup();
-  try {
-    const ynData = await loadJSON(base + 'flower_markets_yn.geojson');
-    ynLayer = L.geoJSON(ynData, {
-      pointToLayer: function(f, ll) { return L.circleMarker(ll, { radius: 5, fillColor: '#943850', fillOpacity: 0.85, color: '#fff', weight: 1.5, pane: 'markerPane' }); },
-      onEachFeature: function(f, layer) {
-        var p = f.properties;
-        layer.bindTooltip('<strong>' + (p.name||'') + '</strong><br>' + (p.city||'') + ' ' + (p.address||''), { direction: 'top' });
-      },
-    });
-  } catch(e) { console.warn('云南市场点加载失败:', e); }
-  layerGroups['yn'] = ynLayer;
-  ynLayer.addTo(map);
-  
-  // 国内终点城市圆点 (深色小点 + 标注)
-  const odData = await loadJSON(base + 'od_domestic.geojson');
-  const destCities = L.layerGroup();
-  odData.features.forEach(f => {
-    const coords = f.geometry.coordinates;
-    const end = coords[coords.length - 1];
-    const p = f.properties;
-    const ll = [end[1], end[0]];
-    L.circleMarker(ll, {
-      radius: 3.5, fillColor: PK.levelF, fillOpacity: 0.9, color: '#fff', weight: 1
-    }).bindTooltip(`<strong>${p.dest_city || ''}</strong><br>流量: ${(p.volume||0).toLocaleString()}`, { direction: 'top' })
-      .addTo(destCities);
-    // 城市名标注
-    const cityLabel = L.marker(ll, {
-      icon: L.divIcon({
-        className: '', html: `<div class="zoom-label" style="font-size:11px;color:#802838;font-weight:700;white-space:nowrap;text-shadow:0 0 3px #fff;">${p.dest_city || ''}</div>`,
-        iconAnchor: [-10, -10],
-      }), interactive: false,
-    }).addTo(destCities);
+  // --- 云南花卉市场点 (按城市聚合) ---
+  var allMarkets = { features: [] };
+  var cityShapes = { features: [] };
+  try { allMarkets = await loadJSON(base + 'flower_markets_yn.geojson'); } catch(e) {}
+  try { cityShapes = await loadJSON(base + 'yunnan_city.geojson'); } catch(e) {}
+
+  // 市界数据 → bounds + 中心
+  var cityBounds = {}, cityCenters = {};
+  cityShapes.features.forEach(function(f) {
+    var name = f.properties.name || '';
+    if (!name) return;
+    var pts = [];
+    if (f.geometry.type === 'Polygon') { pts = f.geometry.coordinates[0]; }
+    else if (f.geometry.type === 'MultiPolygon') {
+      f.geometry.coordinates.forEach(function(p) { p[0].forEach(function(c) { pts.push(c); }); });
+    }
+    if (pts.length < 3) return;
+    var lats = pts.map(function(c){return c[1];});
+    var lngs = pts.map(function(c){return c[0];});
+    lats.sort(function(a,b){return a-b;});
+    lngs.sort(function(a,b){return a-b;});
+    cityBounds[name] = L.latLngBounds([[lats[0],lngs[0]],[lats[lats.length-1],lngs[lngs.length-1]]]);
+    var sLat=0,sLng=0; lats.forEach(function(v){sLat+=v;}); lngs.forEach(function(v){sLng+=v;});
+    cityCenters[name] = [sLat/lats.length, sLng/lngs.length];
   });
-  destCities.addTo(map);
+
+  // 短名→全名匹配
+  function matchCity(short) {
+    var keys = Object.keys(cityBounds);
+    for (var i=0; i<keys.length; i++) { if (keys[i].indexOf(short)>=0) return keys[i]; }
+    return short;
+  }
+
+  // 按市分组
+  var marketsByCity = {};
+  allMarkets.features.forEach(function(f) {
+    var c = f.properties.city || ''; if (!c) return;
+    var full = matchCity(c);
+    if (!marketsByCity[full]) marketsByCity[full] = [];
+    marketsByCity[full].push(f);
+  });
+
+  // 聚合圆点 (随缩放适配大小)
+  var cityMarkers = {};
+  var cityCounts = {};
+  var detailLayer = L.layerGroup().addTo(map);
+  Object.keys(marketsByCity).forEach(function(city) {
+    var count = marketsByCity[city].length;
+    var center = cityCenters[city];
+    if (!center) return;
+    cityCounts[city] = count;
+    var baseR = Math.sqrt(count) * 1.8;
+    var z = map.getZoom();
+    var r = baseR * (z / 7);
+    var m = L.circleMarker(center, {
+      radius: r, fillColor: '#943850', fillOpacity: 0.5, color: '#fff', weight: 2.5,
+      pane: 'markerPane'
+    }).bindTooltip('<strong>' + city + '</strong><br>市场: ' + count + ' 个<br><small>点击查看</small>', {direction:'top'});
+    m.on('click', function() {
+      var b = cityBounds[city]; if (b) map.fitBounds(b, {padding:[30,30]});
+      Object.keys(cityMarkers).forEach(function(k){ cityMarkers[k].setStyle({fillOpacity:0.3,fillColor:'#943850'}); });
+      m.setStyle({fillOpacity:0.9,fillColor:'#802838'});
+      detailLayer.clearLayers();
+      (marketsByCity[city]||[]).forEach(function(f) {
+        var c = f.geometry.coordinates;
+        L.circleMarker([c[1],c[0]], {
+          radius: 2.8, fillColor: '#601020', fillOpacity: 0.9, color: '#fff', weight: 1.2, pane: 'markerPane'
+        }).bindTooltip('<strong>'+(f.properties.name||'')+'</strong><br>'+(f.properties.city||'')+' '+(f.properties.address||''), {direction:'top'}).addTo(detailLayer);
+      });
+      if (!window._bb) {
+        var BC = L.Control.extend({ onAdd: function() {
+          var d = L.DomUtil.create('div',''); d.innerHTML = '<div style="background:rgba(128,40,56,0.85);color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:14px;">← 返回全省</div>';
+          L.DomEvent.on(d,'click',function(e){ L.DomEvent.stopPropagation(e); map.fitBounds([[22.5,99],[27.5,104]],{padding:[10,10]}); detailLayer.clearLayers(); Object.keys(cityMarkers).forEach(function(k){cityMarkers[k].setStyle({fillOpacity:0.5,fillColor:'#943850'});}); });
+          return d;
+        }});
+        window._bb = new BC({position:'topleft'}).addTo(map);
+      }
+    });
+    m.addTo(map); cityMarkers[city] = m;
+  });
+
+  // 缩放时更新圆点大小
+  map.on('zoom', function() {
+    var z = map.getZoom();
+    Object.keys(cityMarkers).forEach(function(city) {
+      var baseR = Math.sqrt(cityCounts[city] || 1) * 1.8;
+      cityMarkers[city].setRadius(baseR * (z / 7));
+    });
+  });
 
   // 标注
   createLabels({ type: 'FeatureCollection', features: tierDomestic });
@@ -593,7 +604,6 @@ async function init() {
 
 function updateLegends() {
   const pairs = [
-    ['toggleIDW',  'legendIDW'],
     ['toggleKDE', 'legendKDE'],
     ['toggleTier','legendTier'],
   ];

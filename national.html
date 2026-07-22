@@ -113,6 +113,10 @@
 </head>
 <body>
 
+<div style="position:absolute;top:12px;right:16px;z-index:1000;pointer-events:none;font-size:48px;color:#802838;text-shadow:0 0 4px #fff;line-height:1;">
+  <div>▲</div><div style="font-size:18px;text-align:center;font-weight:700;">N</div>
+</div>
+
 <div style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:auto;">
 <div class="legend-panel visible" style="display:block !important;">
   <h4>辐射密度等级 (IDW插值)</h4>
@@ -120,17 +124,10 @@
   <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4 — 高密度</div>
-  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
-  <h4>核密度分析</h4>
-  <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 等级5 — 最高密度</div>
-  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
-  <h4>国内定价权等级</h4>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#943850;width:14px;height:14px;"></span> 核心枢纽</div>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:11px;height:11px;"></span> 区域中心</div>
+  <h4>定价权等级</h4>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#802838;width:16px;height:16px;"></span> 核心枢纽 (12px)</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#A8586C;width:12px;height:12px;"></span> 区域中心 (8px)</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#D0A4B0;width:8px;height:8px;"></span> 分销节点 (5px)</div>
 </div>
 </div>
 
@@ -167,9 +164,9 @@ const OD_CLASSES = [
 
 // 定价权: 3级唯一值
 const TIER_STYLE = {
-  '核心枢纽': { radius: 10, color: PK.levelF, weight: 2.5, fillOpacity: 0.90 },
-  '区域中心': { radius: 7,  color: PK.levelD, weight: 2.0, fillOpacity: 0.85 },
-  '分销节点': { radius: 5,  color: PK.levelB, weight: 1.5, fillOpacity: 0.80 },
+  '核心枢纽': { radius: 12, color: PK.accent, weight: 3, fillOpacity: 0.95, fillColor: PK.accent },
+  '区域中心': { radius: 8,  color: PK.levelE, weight: 2.5, fillOpacity: 0.88, fillColor: PK.levelE },
+  '分销节点': { radius: 5,  color: PK.levelC, weight: 1.5, fillOpacity: 0.80, fillColor: PK.levelC },
 };
 const TIER_DEFAULT = { radius: 6, color: PK.levelC, weight: 1.5, fillOpacity: 0.80 };
 
@@ -188,6 +185,7 @@ map.fitBounds([[18, 73], [54, 135]], { padding: [20, 20] });
 
 // 纯色底图：匹配 LaTeX PKbg #F7F0F2，不加载任何瓦片底图
 map.getContainer().style.background = '#ffffff';
+L.control.scale({ position: 'bottomright', metric: true, imperial: false, maxWidth: 150 }).addTo(map);
 
 // 如需瓦片底图，取消下面注释：
 // const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';
@@ -217,10 +215,9 @@ function styleKDE(feature) {
   const idx = Math.min(level, KDE_COLORS.length - 1);
   return {
     fillColor: KDE_COLORS[idx],
-    fillOpacity: 0.45,
-    color: KDE_COLORS[Math.min(idx + 1, KDE_COLORS.length - 1)],
-    weight: 1.2,
-    opacity: 0.60,
+    fillOpacity: 0.60,
+    color: 'transparent',
+    weight: 0,
   };
 }
 
@@ -506,14 +503,6 @@ async function init() {
   idwLayer.addTo(map);
   // all layers visible by default
 
-  // --- 核密度面 ---
-  let kdeLayer = L.layerGroup();
-  try {
-    const kdeData = await loadJSON(base + 'kernel_density.geojson');
-    kdeLayer = L.geoJSON(kdeData, { style: styleKDE, onEachFeature: bindKDE });
-  } catch(e) { console.warn('核密度分析加载失败:', e); }
-  layerGroups['kde'] = kdeLayer;
-
   // --- 定价权等级点 (仅国内) ---
   const tierData = await loadJSON(base + 'pricing_power.geojson');
   const tierDomestic = tierData.features.filter(f => f.properties.country === '中国');
@@ -542,21 +531,6 @@ async function init() {
   } catch(e) { console.warn('全国市场点加载失败:', e); }
   layerGroups['nat'] = natLayer;
   natLayer.addTo(map);
-  
-  // --- 云南花卉市场点 ---
-  let ynLayer = L.layerGroup();
-  try {
-    const ynData = await loadJSON(base + 'flower_markets_yn.geojson');
-    ynLayer = L.geoJSON(ynData, {
-      pointToLayer: function(f, ll) { return L.circleMarker(ll, { radius: 5, fillColor: '#943850', fillOpacity: 0.85, color: '#fff', weight: 1.5, pane: 'markerPane' }); },
-      onEachFeature: function(f, layer) {
-        var p = f.properties;
-        layer.bindTooltip('<strong>' + (p.name||'') + '</strong><br>' + (p.city||'') + ' ' + (p.address||''), { direction: 'top' });
-      },
-    });
-  } catch(e) { console.warn('云南市场点加载失败:', e); }
-  layerGroups['yn'] = ynLayer;
-  ynLayer.addTo(map);
   
   // 国内终点城市圆点 (深色小点 + 标注)
   const odData = await loadJSON(base + 'od_domestic.geojson');
@@ -594,7 +568,6 @@ async function init() {
 function updateLegends() {
   const pairs = [
     ['toggleIDW',  'legendIDW'],
-    ['toggleKDE', 'legendKDE'],
     ['toggleTier','legendTier'],
   ];
   pairs.forEach(([cbId, legId]) => {
