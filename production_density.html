@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产区核密度分析</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: #fff; }
+
+  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100vh; z-index: 1; }
+
+  /* ====== 配色系统：低饱和粉玫渐变 (来自 LaTeX 色板) ======
+     PKbg:       #F7F0F2  底图底色
+     PKboundary: #C4B0B6  边界线
+     PKlevelA:   #F0DCE2  L1 最浅
+     PKlevelB:   #E2C4CC  L2 浅
+     PKlevelC:   #D0A4B0  L3 中浅
+     PKlevelD:   #BC8090  L4 中
+     PKlevelE:   #A8586C  L5 中深/玫粉
+     PKlevelF:   #943850  L6 深玫粉 (最高级/核心)
+     PKaccent:   #802838  最深强调
+     PKlink:     #C08090  OD连线
+  */
+
+  /* ---- 图层面板 ---- */
+  .layer-panel {
+    position: absolute; top: 80px; right: 12px; z-index: 1000;
+    background: rgba(255,255,255,0.96); border-radius: 10px;
+    padding: 14px 18px; box-shadow: 0 4px 20px rgba(128,40,56,0.12);
+    min-width: 210px; font-size: 14px;
+    pointer-events: auto; border: 1px solid #E8CCD4;
+  }
+  .layer-panel h3 { font-size: 15px; margin-bottom: 10px; color: #802838; border-bottom: 1px solid #F0DCE2; padding-bottom: 6px; }
+  .layer-panel label { display: flex; align-items: center; padding: 5px 0; cursor: pointer; gap: 8px; color: #8C3444; }
+  .layer-panel label:hover { color: #802838; }
+  .layer-panel input[type="checkbox"] { accent-color: #943850; width: 16px; height: 16px; }
+  .layer-dot { width: 14px; height: 14px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+  .layer-dot.circle { border-radius: 50%; }
+
+  /* ---- 图例面板 ---- */
+  .legend-panel {
+    background: rgba(255,255,255,0.85);
+    padding: 6px 10px;
+    font-size: 12px; pointer-events: auto;
+    display: none; max-width: 180px;
+  }
+  .legend-panel.visible { display: inline-block !important; position: static !important; }
+  .legend-panel h4 { margin-bottom: 4px; color: #802838; font-size: 12px; }
+  .legend-row { display: flex; align-items: center; gap: 5px; margin: 1px 0; color: #666; line-height: 1.3; }
+  .legend-swatch { width: 22px; height: 15px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
+  .legend-swatch.circle { width: 13px; height: 13px; border-radius: 50%; margin: 0 4px; border: none; }
+  .legend-swatch.star { font-size: 16px; line-height: 1; flex-shrink: 0; margin: 0 0px; }
+  .legend-line { width: 28px; height: 0; flex-shrink: 0; border-radius: 1px; }
+
+  /* ---- 弹窗 ---- */
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px; box-shadow: 0 3px 14px rgba(128,40,56,0.18);
+    border: 1px solid #E2C4CC;
+  }
+  .leaflet-popup-content { font-size: 13px; line-height: 1.6; margin: 8px 12px; color: #666; }
+  .leaflet-popup-content strong { color: #943850; }
+
+  /* ---- Tooltip ---- */
+  .leaflet-tooltip {
+    background: rgba(255,255,255,0.96); border: 1px solid #E2C4CC; border-radius: 6px;
+    padding: 6px 10px; box-shadow: 0 2px 8px rgba(128,40,56,0.12);
+    font-size: 12px; line-height: 1.5; color: #666;
+  }
+  .leaflet-tooltip strong { color: #943850; }
+
+  /* ---- 发射脉冲动画 ---- */
+  @keyframes pulseRing {
+    0%   { transform: scale(0.5); opacity: 1; border-width: 3px; }
+    50%  { opacity: 0.6; }
+    100% { transform: scale(8); opacity: 0; border-width: 0.5px; }
+  }
+  @keyframes pulseRing2 {
+    0%   { transform: scale(0.5); opacity: 0.8; border-width: 2px; }
+    50%  { opacity: 0.4; }
+    100% { transform: scale(6); opacity: 0; border-width: 0.5px; }
+  }
+  @keyframes flowDash {
+    to { stroke-dashoffset: -28; }
+  }
+  .od-flow {
+    animation: flowDash 1.5s linear infinite;
+  }
+
+  /* 脉冲圈 */
+  .pulse-ring {
+    position: absolute;
+    border: 3px solid #943850;
+    border-radius: 50%;
+    background: rgba(148,56,80,0.08);
+    animation: pulseRing 5s ease-out infinite;
+    pointer-events: none;
+    z-index: 10000;
+  }
+  .pulse-ring:nth-child(2) {
+    animation: pulseRing2 5s ease-out 1.5s infinite;
+    border-color: #BC8090;
+    background: rgba(188,128,144,0.06);
+  }
+
+  @media (max-width: 640px) {
+    .title-bar h1 { font-size: 1em; }
+    .layer-panel { top: 60px; right: 6px; padding: 10px 12px; min-width: 170px; font-size: 12px; }
+    .legend-panel { bottom: 10px; left: 6px; font-size: 11px; padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SVG 条纹图案：交易面叠加阴影 -->
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <pattern id="hatch-trade" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="10" stroke="#802838" stroke-width="3" stroke-opacity="0.4"/>
+    </pattern>
+    <pattern id="hatch-overlap" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-45)">
+      <rect width="8" height="8" fill="#802838" fill-opacity="0.3"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#fff" stroke-width="2" stroke-opacity="0.5"/>
+    </pattern>
+  </defs>
+</svg>
+
+<div style="position:absolute;top:12px;right:16px;z-index:1000;pointer-events:none;font-size:48px;color:#802838;text-shadow:0 0 4px #fff;line-height:1;">
+  <div>▲</div><div style="font-size:18px;text-align:center;font-weight:700;">N</div>
+</div>
+
+<div style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:auto;">
+<div class="legend-panel visible" style="display:block !important;">
+    <h4>产区等值线 (4级)</h4>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #943850;"></span> 6×10⁻⁸</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #A8586C;"></span> 1.07×10⁻⁵</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #BC8090;"></span> 1.09×10⁻⁴</div>
+  <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #E2C4CC;"></span> 6.88×10⁻⁴</div>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
+  <h4>产区核密度 (5级)</h4>
+  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 等级1</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#A8586C;"></span> 等级2</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级3</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级4</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级5</div>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
+  <h4>定价权等级</h4>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#3d5c4a;width:16px;height:16px;"></span> 核心枢纽 (12px)</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#6a8a77;width:12px;height:12px;"></span> 区域中心 (8px)</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#9bb8a6;width:8px;height:8px;"></span> 分销节点 (5px)</div>
+</div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ======================== 配色方案 (LaTeX §1.2 色板) ========================
+const PK = {
+  bg:       '#F7F0F2',
+  boundary: '#C4B0B6',
+  levelA:   '#F0DCE2',
+  levelB:   '#E2C4CC',
+  levelC:   '#D0A4B0',
+  levelD:   '#BC8090',
+  levelE:   '#A8586C',
+  levelF:   '#943850',
+  accent:   '#802838',
+  link:     '#C08090',
+};
+
+const IDW_COLORS = [PK.levelA, PK.levelB, PK.levelC, PK.levelD];      // L1-L4
+const KDE_COLORS = [PK.levelA, PK.levelB, PK.levelC, PK.levelD, PK.levelE, PK.levelF]; // L1-L6
+
+// OD线: Jenks 5级 (按 volume_sim)
+// OD线: 显著加深加粗版
+const OD_CLASSES = [
+  { max: 1000,  color: PK.levelE, weight: 1.8, opacity: 0.76 },
+  { max: 3000,  color: PK.levelF, weight: 2.5, opacity: 0.76 },
+  { max: 6000,  color: PK.accent, weight: 3.2, opacity: 0.78 },
+  { max: 9000,  color: '#943850', weight: 4.0, opacity: 0.78 },
+  { max: Infinity, color: '#3d0818', weight: 5.0, opacity: 0.80 },
+];
+
+// 定价权: 3级唯一值
+const TIER_STYLE = {
+  '核心枢纽': { radius: 12, color: '#3d5c4a', weight: 3, fillOpacity: 0.95, fillColor: '#3d5c4a' },
+  '区域中心': { radius: 8,  color: '#6a8a77', weight: 2.5, fillOpacity: 0.88, fillColor: '#6a8a77' },
+  '分销节点': { radius: 5,  color: '#9bb8a6', weight: 1.5, fillOpacity: 0.80, fillColor: '#9bb8a6' },
+};
+const TIER_DEFAULT = { radius: 6, color: PK.levelC, weight: 1.5, fillOpacity: 0.80 };
+
+// 斗南中心星标 (如果有)
+const DOUNAN_COORDS = [24.899, 102.783];
+
+// ======================== 基础底图 ========================
+const map = L.map('map', {
+  center: [35, 105],
+  zoom: 4,
+  minZoom: 2,
+  maxZoom: 18,
+  zoomControl: true,
+});
+map.fitBounds([[18, 73], [54, 135]], { padding: [20, 20] });
+
+// 纯色底图：匹配 LaTeX PKbg #F7F0F2，不加载任何瓦片底图
+map.getContainer().style.background = '#ffffff';
+L.control.scale({ position: 'bottomright', metric: true, imperial: false, maxWidth: 150 }).addTo(map);
+
+// 如需瓦片底图，取消下面注释：
+// const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';
+// const tdtVec = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=' + TK, { subdomains: ['0','1','2','3','4','5','6','7'], maxZoom: 18 });
+// const tdtCva = L.tileLayer('http://t{s}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=' + TK, { subdomains: ['0','1','2','3','4','5','6','7'], maxZoom: 18 });
+// L.layerGroup([tdtVec, tdtCva]).addTo(map);
+
+// ======================== 图层容器 ========================
+const layerGroups = {};
+// 创建自定义顶层pane用于定价权点位（位于POI之上）
+map.createPane('tierPane');
+map.getPane('tierPane').style.zIndex = 650;
+const allLabels = L.layerGroup().addTo(map);
+
+// ======================== 样式函数 ========================
+function styleIDW(feature) {
+  const level = (feature.properties.level || 1) - 1;
+  const idx = Math.min(level, IDW_COLORS.length - 1);
+  return {
+    fillColor: IDW_COLORS[idx],
+    fillOpacity: 0.40,
+    color: IDW_COLORS[idx],
+    weight: 1.0,
+    opacity: 0.55,
+  };
+}
+
+function styleKDE(feature) {
+  const level = (feature.properties.level || 1) - 1;
+  const idx = Math.min(level, KDE_COLORS.length - 1);
+  return {
+    fillColor: KDE_COLORS[idx],
+    fillOpacity: 0.60,
+    color: 'transparent',
+    weight: 0,
+  };
+}
+
+function styleOD(feature) {
+  const vol = feature.properties.volume || 0;
+  for (const cls of OD_CLASSES) {
+    if (vol <= cls.max) {
+      return { color: cls.color, weight: cls.weight, opacity: cls.opacity };
+    }
+  }
+  return { color: PK.levelB, weight: 0.3, opacity: 0.25 };
+}
+
+function styleTier(feature) {
+  const tl = feature.properties.tier_label || '';
+  const style = TIER_STYLE[tl] || TIER_DEFAULT;
+  return {
+    radius: style.radius,
+    fillColor: style.color,
+    color: '#fff',
+    weight: style.weight,
+    fillOpacity: style.fillOpacity,
+  };
+}
+
+// ======================== Popup / Tooltip ========================
+function bindIDW(feature, layer) {
+  const p = feature.properties;
+  const dt = typeof p.density_th === 'number' ? p.density_th : null;
+  const dStr = dt !== null
+    ? dt.toFixed(6) + ' (加权密度指数)'
+    : '-';
+  layer.bindTooltip(
+    `<strong>${p.label || ''}</strong><br>密度阈值: ${dStr}<br>等级: ${p.level}`,
+    { direction: 'top', sticky: true }
+  );
+}
+
+function bindKDE(feature, layer) {
+  const p = feature.properties;
+  const dt = typeof p.density_th === 'number' ? p.density_th : null;
+  const dStr = dt !== null
+    ? dt.toFixed(6) + ' (核密度指数)'
+    : '-';
+  layer.bindTooltip(
+    `<strong>${p.label || ''}</strong><br>核密度值: ${dStr}<br>等级: ${p.level}`,
+    { direction: 'top', sticky: true }
+  );
+}
+
+function bindOD(feature, layer) {
+  const p = feature.properties;
+  const vol = typeof p.volume === 'number' ? p.volume.toLocaleString() : '-';
+  const expVal = typeof p.export_value === 'number' && p.export_value > 0
+    ? `<br>📊 ${p.country || ''}鲜切花出口额: ${p.export_value.toFixed(0)} 万美元 (2020)`
+    : (p.country && p.country !== '中国' ? `<br>📊 ${p.country || ''}` : '');
+  layer.bindTooltip(
+    `<strong>${p.dest_name || ''}</strong><br>🏙️ ${p.dest_city || ''} · ${p.country || ''}<br>📏 ${typeof p.distance_k === 'number' ? p.distance_k.toFixed(1) : '-'} km<br>📦 交易流量: ${vol}${expVal}`,
+    { direction: 'top', sticky: true }
+  );
+}
+
+function bindTier(feature, layer) {
+  const p = feature.properties;
+  const tl = p.tier_label || p.tier || '';
+  const starIcon = tl === '核心枢纽' ? '★ ' : '';
+  const ll = layer.getLatLng ? layer.getLatLng() : null;
+  const latlngStr = ll ? `${ll.lat.toFixed(4)}°, ${ll.lng.toFixed(4)}°` : '';
+  layer.bindPopup(
+    `<strong style="font-size:15px;">${starIcon}${p.name || ''}</strong>
+     <em style="color:#A8586C;">${p.name_en || ''}</em><br><br>
+     📍 ${p.city || ''}, ${p.country || ''}<br>
+     🌐 ${latlngStr}<br>
+     🏷️ ${p.type || ''}<br>
+     ⭐ 等级: <strong style="color:#943850;">${tl}</strong><br>
+     📝 ${p.note || ''}`,
+    { maxWidth: 300 }
+  );
+}
+
+// ======================== 标注层 ========================
+function createLabels(geojson) {
+  geojson.features.forEach(f => {
+    if (!f.properties.name) return;
+    const geom = f.geometry;
+    if (!geom) return;
+    let latlng;
+    if (geom.type === 'Point') {
+      latlng = [geom.coordinates[1], geom.coordinates[0]];
+    } else {
+      return;
+    }
+    const icon = L.divIcon({
+      className: 'leaflet-label',
+      html: `<div class="zoom-label" style="color:#802838;text-shadow:0 0 4px #fff;white-space:nowrap;font-weight:700;pointer-events:none;">${f.properties.name}</div>`,
+      iconAnchor: [-10, 8],
+    });
+    const label = L.marker(latlng, { icon, interactive: false });
+    allLabels.addLayer(label);
+  });
+}
+
+// 所有标注随缩放变化
+function updateAllLabelSizes() {
+  const z = map.getZoom();
+  const size = Math.max(9, 6 + z * 1.4);
+  document.querySelectorAll('.zoom-label').forEach(el => {
+    el.style.fontSize = size + 'px';
+  });
+}
+map.on('zoom', updateAllLabelSizes);
+updateAllLabelSizes();
+
+// 斗南中心星标
+function addDounanStar() {
+  const starIcon = L.divIcon({
+    className: '',
+    html: `<div style="font-size:22px;color:#802838;text-shadow:0 0 6px #F7F0F2,0 0 2px gold;filter:drop-shadow(0 0 3px gold);">★</div>`,
+    iconAnchor: [11, 11],
+  });
+  L.marker(DOUNAN_COORDS, { icon: starIcon, zIndexOffset: 9999 })
+    .bindTooltip('<strong style="color:#802838;">昆明斗南花拍中心 (KIFA)</strong><br>2024年交易量: 25.27亿支<br>亚洲第一、世界第二大鲜切花拍卖市场<br><small style="color:#999;">数据来源: KIFA大数据, 2025</small>', { direction: 'top' })
+    .addTo(map);
+
+  // 发射脉冲圈
+  const PulseOverlay = L.Layer.extend({
+    onAdd: function() {
+      const pane = this._pane = document.createElement('div');
+      pane.style.position = 'absolute';
+      pane.style.top = '0'; pane.style.left = '0';
+      pane.style.pointerEvents = 'none';
+      pane.style.zIndex = '9998';
+      map.getContainer().appendChild(pane);
+
+      function getRingSize() {
+        const z = map.getZoom();
+        return Math.max(12, 20 + (z - 3) * 15);
+      }
+      const r1 = document.createElement('div');
+      r1.className = 'pulse-ring';
+      const updateRingSize = () => {
+        const s = getRingSize();
+        r1.style.width = s + 'px'; r1.style.height = s + 'px';
+        r1.style.marginLeft = (-s/2) + 'px'; r1.style.marginTop = (-s/2) + 'px';
+      };
+      updateRingSize();
+      pane.appendChild(r1);
+
+      const r2 = document.createElement('div');
+      r2.className = 'pulse-ring';
+      const updateRingSize2 = () => {
+        const s = getRingSize();
+        r2.style.width = s + 'px'; r2.style.height = s + 'px';
+        r2.style.marginLeft = (-s/2) + 'px'; r2.style.marginTop = (-s/2) + 'px';
+      };
+      updateRingSize2();
+      pane.appendChild(r2);
+
+      this._update = () => {
+        const pt = map.latLngToContainerPoint(DOUNAN_COORDS);
+        pane.style.left = pt.x + 'px';
+        pane.style.top = pt.y + 'px';
+        updateRingSize();
+        updateRingSize2();
+      };
+      map.on('move zoom', this._update);
+      this._update();
+    },
+    onRemove: function() {
+      map.off('move zoom', this._update);
+    }
+  });
+  new PulseOverlay().addTo(map);
+}
+
+// ======================== 发光段沿路径飞行 (Canvas) ========================
+function createParticleEffect(odLayer) {
+  const clones = [];
+  let svg = null;
+
+  function buildClones() {
+    clones.forEach(c => c.el.remove());
+    clones.length = 0;
+    const pathEls = [];
+    odLayer.eachLayer(function(l) {
+      if (l._path && l._path.getTotalLength) {
+        const len = l._path.getTotalLength();
+        if (len > 50) pathEls.push({ el: l._path, len });
+      }
+    });
+    if (!pathEls.length) return;
+    svg = pathEls[0].el.ownerSVGElement;
+    pathEls.forEach(pd => {
+      const clone = pd.el.cloneNode(true);
+      const segLen = 40 + Math.random() * 60;
+      const total = pd.len;
+      clone.setAttribute('stroke', '#fff');
+      clone.setAttribute('stroke-width', '1.8');
+      clone.setAttribute('stroke-opacity', '0.95');
+      clone.setAttribute('stroke-linecap', 'round');
+      clone.setAttribute('stroke-linecap', 'round');
+      clone.setAttribute('stroke-dasharray', segLen + ' ' + total);
+      clone.setAttribute('stroke-dashoffset', total + Math.random() * segLen);
+      clone.setAttribute('fill', 'none');
+      clone.style.pointerEvents = 'none';
+      svg.appendChild(clone);
+      clones.push({ el: clone, segLen, total, speed: 0.5 + Math.random() * 0.5 });
+    });
+  }
+
+  buildClones();
+  let rebuildTimer;
+  function rebuildDebounced() {
+    clearTimeout(rebuildTimer);
+    rebuildTimer = setTimeout(buildClones, 20);
+  }
+  map.on('zoom moveend', rebuildDebounced);
+
+  function animate() {
+    clones.forEach(c => {
+      let offset = parseFloat(c.el.getAttribute('stroke-dashoffset'));
+      offset -= c.speed;
+      if (offset < -c.segLen) offset = c.total;
+      c.el.setAttribute('stroke-dashoffset', offset);
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ======================== 主加载 ========================
+async function init() {
+  const base = 'geojson/';
+
+  // --- 底图：大洲面 (PKbg填充 + PKboundary描边) ---
+  let continentLayer = L.layerGroup();
+  try {
+    const continentData = await loadJSON(base + 'continent.geojson');
+    continentLayer = L.geoJSON(continentData, {
+      style: { fillColor: '#fdf6f8', fillOpacity: 1, color: PK.boundary, weight: 0.6, opacity: 0.7 },
+      interactive: false,
+    });
+  } catch(e) { console.warn('大洲加载失败:', e); }
+  continentLayer.addTo(map);
+
+  // --- 底图：中国省份面 (最浅粉色填充) ---
+  let provLayer = L.layerGroup();
+  try {
+    const provData = await loadJSON(base + 'china_provinces.geojson');
+    provLayer = L.geoJSON(provData, {
+      style: { fillColor: '#f6e6ec', fillOpacity: 1, color: 'transparent', weight: 0 },
+      interactive: false,
+    });
+  } catch(e) { console.warn('省份面加载失败:', e); }
+  provLayer.addTo(map);
+
+  // --- 底图：中国国界线 ---
+  let chinaLayer = L.layerGroup();
+  try {
+    const chinaData = await loadJSON(base + 'china_boundary.geojson');
+    chinaLayer = L.geoJSON(chinaData, {
+      style: { color: PK.boundary, weight: 1.0, opacity: 0.9, fill: false },
+      interactive: false,
+    });
+  } catch(e) { console.warn('国界线加载失败:', e); }
+  chinaLayer.addTo(map);
+
+  // --- 底图：海岸线 ---
+  let coastlineLayer = L.layerGroup();
+  try {
+    const coastData = await loadJSON(base + 'coastline.geojson');
+    coastlineLayer = L.geoJSON(coastData, {
+      style: { color: PK.boundary, weight: 0.5, opacity: 0.5, fill: false },
+      interactive: false,
+    });
+  } catch(e) { console.warn('海岸线加载失败:', e); }
+  coastlineLayer.addTo(map);
+
+
+  // --- 产区核密度 (5级) ---
+  const prodColors = ['#943850','#A8586C','#BC8090','#D0A4B0','#E2C4CC'];
+  try {
+    const prodData = await loadJSON(base + 'kde_production.geojson');
+    const prodLayer = L.geoJSON(prodData, {
+      style: function(f) { var lv = (f.properties.level||1)-1; return { fillColor: prodColors[Math.min(lv,4)], fillOpacity: 0.55, color: 'transparent', weight: 0 }; },
+      interactive: false,
+    });
+    prodLayer.addTo(map);
+  } catch(e) { console.warn('产区KDE加载失败:', e); }
+
+
+  // --- 产区等值线 (4级) ---
+  const cProdColors = ['#943850','#A8586C','#BC8090','#E2C4CC'];
+  try {
+    const cpData = await loadJSON(base + 'contour_production.geojson');
+    L.geoJSON(cpData, {
+      style: function(f) { var lv=(f.properties.level||1)-1; return { color: cProdColors[Math.min(lv,3)], weight: 1.5, opacity: 0.75 }; },
+      interactive: false,
+    }).addTo(map);
+  } catch(e) { console.warn('产区等值线加载失败:', e); }
+
+  // --- 定价权等级点 (仅国内) ---
+  const tierData = await loadJSON(base + 'pricing_power.geojson');
+  const tierDomestic = tierData.features.filter(f => f.properties.country === '中国');
+  const tierLayer = L.geoJSON({ type: 'FeatureCollection', features: tierDomestic }, {
+    pointToLayer: function(feature, latlng) {
+      const tl = feature.properties.tier_label || '';
+      const s = TIER_STYLE[tl] || TIER_DEFAULT;
+      return L.circleMarker(latlng, { radius: s.radius, fillColor: s.fillColor||s.color, fillOpacity: s.fillOpacity, color: "#fff", weight: s.weight, pane: "tierPane" });
+    },
+    onEachFeature: bindTier,
+  });
+  layerGroups['tier'] = tierLayer;
+  tierLayer.addTo(map);
+
+  // --- 全国花卉市场点 ---
+  let natLayer = L.layerGroup();
+  try {
+    const natData = await loadJSON(base + 'poi_production.geojson');
+    natLayer = L.geoJSON(natData, {
+      pointToLayer: function(f, ll) { return L.circleMarker(ll, { radius: 3, fillColor: '#943850', fillOpacity: 0.75, color: 'transparent', weight: 0, pane: 'markerPane' }); },
+      onEachFeature: function(f, layer) {
+        var p = f.properties;
+        layer.bindTooltip('<strong>' + (p.name||'') + '</strong><br>' + (p.city||'') + ' ' + (p.address||''), { direction: 'top' });
+      },
+    });
+  } catch(e) { console.warn('全国市场点加载失败:', e); }
+  layerGroups['nat'] = natLayer;
+  natLayer.addTo(map);
+  // 点位随缩放适配大小
+  var _natZoom = function() {
+    var z = map.getZoom();
+    var r = 3 * (z / 7);
+    natLayer.eachLayer(function(l) { if (l.setRadius) l.setRadius(r); });
+  };
+  map.on('zoom', _natZoom);
+  _natZoom();
+  
+  // 国内终点城市圆点 (深色小点 + 标注)
+  const odData = await loadJSON(base + 'od_domestic.geojson');
+  const destCities = L.layerGroup();
+  odData.features.forEach(f => {
+    const coords = f.geometry.coordinates;
+    const end = coords[coords.length - 1];
+    const p = f.properties;
+    const ll = [end[1], end[0]];
+    L.circleMarker(ll, {
+      radius: 3.5, fillColor: PK.levelF, fillOpacity: 0.9, color: '#fff', weight: 1
+    }).bindTooltip(`<strong>${p.dest_city || ''}</strong><br>流量: ${(p.volume||0).toLocaleString()}`, { direction: 'top' })
+      .addTo(destCities);
+    // 城市名标注
+    const cityLabel = L.marker(ll, {
+      icon: L.divIcon({
+        className: '', html: `<div class="zoom-label" style="font-size:11px;color:#802838;font-weight:700;white-space:nowrap;text-shadow:0 0 3px #fff;">${p.dest_city || ''}</div>`,
+        iconAnchor: [-10, -10],
+      }), interactive: false,
+    }).addTo(destCities);
+  });
+  destCities.addTo(map);
+
+  // 标注
+  createLabels({ type: 'FeatureCollection', features: tierDomestic });
+  addDounanStar();
+
+  // 国内视图：已在上方 fitBounds 锁定中国范围
+  // (不执行全局 fitBounds)
+
+
+
+  }
+
+function updateLegends() {
+  const pairs = [
+    ['toggleIDW',  'legendIDW'],
+    ['toggleTier','legendTier'],
+  ];
+  pairs.forEach(([cbId, legId]) => {
+    const cb = document.getElementById(cbId);
+    const leg = document.getElementById(legId);
+    if (cb && leg) leg.classList.toggle('visible', cb.checked);
+  });
+}
+
+// ======================== 辅助 ========================
+async function loadJSON(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+  return resp.json();
+}
+
+init().catch(err => {
+  console.error(err);
+  alert('地图加载失败，请确认 geojson/ 目录存在。\n' + err.message);
+});
+</script>
+</body>
+</html>
