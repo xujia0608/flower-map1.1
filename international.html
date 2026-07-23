@@ -53,13 +53,14 @@
 
   /* ---- 图例面板 ---- */
   .legend-panel {
-    background: rgba(255,255,255,0.96); border-radius: 8px;
-    padding: 8px 12px; box-shadow: 0 4px 20px rgba(128,40,56,0.12);
-    font-size: 12px; border: 1px solid #E8CCD4;
-    display: none;
+    background: rgba(255,255,255,0.85);
+    padding: 6px 10px;
+    font-size: 12px; pointer-events: auto;
+    display: none; max-width: 180px;
+    font-family: 'Times New Roman', 'SimSun', serif;
   }
-  .legend-panel.visible { display: block; margin-bottom: 6px; }
-  .legend-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .legend-panel.visible { display: block; margin-bottom: 8px; }
+  .legend-wrap { display: flex; flex-direction: column; gap: 10px; }
   .legend-panel h4 { margin-bottom: 8px; color: #802838; font-size: 13px; }
   .legend-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; color: #666; }
   .legend-swatch { width: 22px; height: 15px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
@@ -117,12 +118,6 @@
     background: rgba(188,128,144,0.06);
   }
 
-  .info-bar {
-    position: absolute; bottom: 12px; right: 12px; z-index: 1000;
-    background: rgba(128,40,56,0.78); color: #F7F0F2; border-radius: 6px;
-    padding: 6px 14px; font-size: 11px; pointer-events: none;
-  }
-
   @media (max-width: 640px) {
     .title-bar h1 { font-size: 1em; }
     .layer-panel { top: 60px; right: 6px; padding: 10px 12px; min-width: 170px; font-size: 12px; }
@@ -132,42 +127,25 @@
 </head>
 <body>
 
-<div class="title-bar">
-  <div>
-    <h1>🌸 全球花卉贸易辐射网络</h1>
-    <span class="subtitle">Global Trade Radiation — 斗南→国际市场</span>
-  </div>
+<div style="position:absolute;top:80px;right:16px;z-index:1000;pointer-events:none;font-size:48px;color:#802838;text-shadow:0 0 4px #fff;line-height:1;">
+  <div>▲</div><div style="font-size:18px;text-align:center;font-weight:700;">N</div>
 </div>
 
-<div class="layer-panel" id="layerPanel">
-  <h3>🗺️ 图层控制</h3>
-  <label><input type="checkbox" id="toggleOD" checked> <span class="layer-dot" style="background:#C08090;"></span> 贸易网络线 (OD)</label>
-  <label><input type="checkbox" id="toggleTier" checked> <span class="layer-dot circle" style="background:#943850;"></span> 定价权等级点</label>
-  <label style="margin-top:6px;border-top:1px solid #F0DCE2;padding-top:6px;"><input type="checkbox" id="toggleLabels" checked> 🏷️ 显示市场名称标注</label>
-</div>
-
-<div class="legend-wrap" style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:none;">
-<div style="pointer-events:auto;">
-<!-- OD网络图例 -->
-<div class="legend-panel visible" id="legendOD">
-  <h4>🔗 贸易流量分级 (OD网络)</h4>
+<div style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:auto;">
+<div class="legend-panel visible" style="display:block !important;">
+  <h4>贸易流量分级 (OD网络)</h4>
   <div class="legend-row"><span class="legend-line" style="border-top:1px solid #943850;"></span> ≤300 (低流量)</div>
   <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #802838;"></span> ≤800</div>
   <div class="legend-row"><span class="legend-line" style="border-top:2px solid #601020;"></span> ≤1500</div>
   <div class="legend-row"><span class="legend-line" style="border-top:2.5px solid #3d0818;"></span> ≤3000</div>
   <div class="legend-row"><span class="legend-line" style="border-top:3px solid #1a0408;"></span> >3000 (高流量)</div>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
+  <h4>定价权等级</h4>
+  <div class="legend-row"><span class="legend-swatch star" style="color:#3d5c4a;font-size:18px;">★</span> 核心枢纽</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#6a8a77;width:14px;height:14px;border-radius:2px;"></span> 区域中心</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#9bb8a6;width:9px;height:9px;"></span> 分销节点</div>
 </div>
-
-<!-- 定价权图例 -->
-<div class="legend-panel visible" id="legendTier">
-  <h4>⭐ 定价权等级</h4>
-  <div class="legend-row"><span class="legend-swatch star" style="color:#943850;">★</span> 核心枢纽</div>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:13px;height:13px;"></span> 区域中心</div>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#E2C4CC;width:9px;height:9px;"></span> 分销节点</div>
 </div>
-</div></div>
-
-<div class="info-bar" id="infoBar">要素加载中…</div>
 
 <div id="map"></div>
 
@@ -223,6 +201,7 @@ const map = L.map('map', {
 
 // 纯色底图：匹配 LaTeX PKbg #F7F0F2，不加载任何瓦片底图
 map.getContainer().style.background = '#ffffff';
+L.control.scale({ position: 'bottomright', metric: true, imperial: false, maxWidth: 150 }).addTo(map);
 
 // 如需瓦片底图，取消下面注释：
 // const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';
@@ -561,8 +540,7 @@ async function init() {
   if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40] });
 
   // --- 信息栏 ---
-  document.getElementById('infoBar').innerHTML =
-    `要素: OD ${odData.features.length}线 · 定价权 ${tierData.features.length}点 · 核密度 8面 | 国际OD: 23个目的地 | 数据来源: 中国海关总署`;
+  
 
   // --- 图层切换 ---
   function bindToggle(cbId, key, legendIds) {
@@ -578,32 +556,16 @@ async function init() {
         map.removeLayer(lg);
         if (key === 'tier') map.removeLayer(allLabels);
       }
-      updateLegends();
-    });
+          });
   }
 
-  bindToggle('toggleOD',  'od',   ['legendOD']);
-  bindToggle('toggleTier','tier', ['legendTier']);
-
-  document.getElementById('toggleLabels').addEventListener('change', function() {
-    if (this.checked) { allLabels.addTo(map); }
+    
+   }
     else              { map.removeLayer(allLabels); }
   });
 
-  updateLegends();
-}
+  }
 
-function updateLegends() {
-  const pairs = [
-    ['toggleOD',  'legendOD'],
-    ['toggleTier','legendTier'],
-  ];
-  pairs.forEach(([cbId, legId]) => {
-    const cb = document.getElementById(cbId);
-    const leg = document.getElementById(legId);
-    if (cb && leg) leg.classList.toggle('visible', cb.checked);
-  });
-}
 
 // ======================== 辅助 ========================
 async function loadJSON(url) {
