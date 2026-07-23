@@ -252,14 +252,14 @@ function styleTier(feature, latlng) {
   const tl = feature.properties.tier_label || '';
   if (tl === '核心枢纽') {
     return L.marker(latlng, { icon: L.divIcon({
-      className: '', html: '<div style="font-size:18px;color:#943850;line-height:1;">★</div>',
+      className: '', html: '<div style="font-size:18px;color:#3d5c4a;line-height:1;">★</div>',
       iconAnchor: [9, 9], iconSize: [18, 18]
     })});
   }
   if (tl === '区域中心') {
-    return L.circleMarker(latlng, { radius: 7, fillColor: '#BC8090', fillOpacity: 0.9, color: '#fff', weight: 2 });
+    return L.circleMarker(latlng, { radius: 7, fillColor: '#6a8a77', fillOpacity: 0.9, color: '#fff', weight: 2 });
   }
-  return L.circleMarker(latlng, { radius: 5, fillColor: '#E2C4CC', fillOpacity: 0.9, color: '#fff', weight: 1.5 });
+  return L.circleMarker(latlng, { radius: 5, fillColor: '#9bb8a6', fillOpacity: 0.9, color: '#fff', weight: 1.5 });
 }
 
 // ======================== Popup / Tooltip ========================
@@ -542,29 +542,7 @@ async function init() {
   // --- 信息栏 ---
   
 
-  // --- 图层切换 ---
-  function bindToggle(cbId, key, legendIds) {
-    const cb = document.getElementById(cbId);
-    if (!cb) return;
-    cb.addEventListener('change', () => {
-      const lg = layerGroups[key];
-      if (!lg) return;
-      if (cb.checked) {
-        lg.addTo(map);
-        if (key === 'tier') allLabels.addTo(map);
-      } else {
-        map.removeLayer(lg);
-        if (key === 'tier') map.removeLayer(allLabels);
-      }
-          });
-  }
-
-    
-   }
-    else              { map.removeLayer(allLabels); }
-  });
-
-  }
+  // (图层切换已移除)
 
 
 // ======================== 辅助 ========================
