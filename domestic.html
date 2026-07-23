@@ -57,6 +57,7 @@
     padding: 6px 10px;
     font-size: 12px; pointer-events: auto;
     display: none; max-width: 180px;
+    font-family: 'Times New Roman', 'SimSun', serif;
   }
   .legend-panel.visible { display: inline-block !important; position: static !important; }
   .legend-panel h4 { margin-bottom: 4px; color: #802838; font-size: 12px; }
@@ -125,39 +126,30 @@
 </head>
 <body>
 
-<div style="position:absolute;top:12px;right:16px;z-index:1000;pointer-events:none;font-size:48px;color:#802838;text-shadow:0 0 4px #fff;line-height:1;">
+<div style="position:absolute;top:80px;right:16px;z-index:1000;pointer-events:none;font-size:48px;color:#802838;text-shadow:0 0 4px #fff;line-height:1;">
   <div>▲</div><div style="font-size:18px;text-align:center;font-weight:700;">N</div>
 </div>
 
-<div class="legend-wrap" style="position:absolute;bottom:12px;left:12px;z-index:1000;display:flex;gap:6px;pointer-events:none;">
-<div style="pointer-events:auto;position:relative;">
-<!-- IDW 辐射密度图例 -->
-<div class="legend-panel visible" id="legendIDW">
-  <h4>📊 辐射密度等级 (IDW插值)</h4>
+<div style="position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:auto;">
+<div class="legend-panel visible" style="display:block !important;">
+  <h4>辐射密度等级 (IDW插值)</h4>
   <div class="legend-row"><span class="legend-swatch" style="background:#F0DCE2;"></span> 等级1 — 低密度</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4 — 高密度</div>
-</div>
-
-<!-- OD网络图例 -->
-<div class="legend-panel visible" id="legendOD">
-  <h4>🔗 贸易流量分级 (OD网络)</h4>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
+  <h4>贸易流量分级 (OD网络)</h4>
   <div class="legend-row"><span class="legend-line" style="border-top:1px solid #A8586C;"></span> ≤1000</div>
   <div class="legend-row"><span class="legend-line" style="border-top:1.5px solid #943850;"></span> ≤3000</div>
   <div class="legend-row"><span class="legend-line" style="border-top:2px solid #802838;"></span> ≤6000</div>
   <div class="legend-row"><span class="legend-line" style="border-top:2.5px solid #601020;"></span> ≤9000</div>
   <div class="legend-row"><span class="legend-line" style="border-top:3px solid #3d0818;"></span> >9000</div>
-</div>
-
-<!-- 定价权图例 -->
-<div class="legend-panel visible" id="legendTier">
-  <h4>⭐ 国内定价权等级</h4>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
+  <h4>定价权等级</h4>
   <div class="legend-row"><span class="legend-swatch circle" style="background:#943850;width:14px;height:14px;"></span> 核心枢纽</div>
   <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:11px;height:11px;"></span> 区域中心</div>
 </div>
-
-</div></div>
+</div>
 
 <div id="map"></div>
 
@@ -209,10 +201,10 @@ const map = L.map('map', {
   maxZoom: 18,
   zoomControl: true,
 });
-map.fitBounds([[18, 73], [54, 135]], { padding: [20, 20] });
 
 // 纯色底图：匹配 LaTeX PKbg #F7F0F2，不加载任何瓦片底图
 map.getContainer().style.background = '#ffffff';
+L.control.scale({ position: 'bottomright', metric: true, imperial: false, maxWidth: 150 }).addTo(map);
 
 // 如需瓦片底图，取消下面注释：
 // const TK = 'e696c81b7abf0913a31c44ecaf2a34d4';

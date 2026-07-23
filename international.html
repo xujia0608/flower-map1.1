@@ -141,9 +141,9 @@
   <div class="legend-row"><span class="legend-line" style="border-top:3px solid #1a0408;"></span> >3000 (高流量)</div>
   <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
   <h4>定价权等级</h4>
-  <div class="legend-row"><span class="legend-swatch star" style="color:#3d5c4a;font-size:18px;">★</span> 核心枢纽</div>
-  <div class="legend-row"><span class="legend-swatch" style="background:#6a8a77;width:14px;height:14px;border-radius:2px;"></span> 区域中心</div>
-  <div class="legend-row"><span class="legend-swatch circle" style="background:#9bb8a6;width:9px;height:9px;"></span> 分销节点</div>
+  <div class="legend-row"><span class="legend-swatch star" style="color:#943850;font-size:18px;">★</span> 核心枢纽</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#BC8090;width:14px;height:14px;"></span> 区域中心</div>
+  <div class="legend-row"><span class="legend-swatch circle" style="background:#E2C4CC;width:9px;height:9px;"></span> 分销节点</div>
 </div>
 </div>
 
@@ -192,8 +192,8 @@ const DOUNAN_COORDS = [24.899, 102.783];
 
 // ======================== 基础底图 ========================
 const map = L.map('map', {
-  center: [30, 104],
-  zoom: 5,
+  center: [20, 110],
+  zoom: 3,
   minZoom: 2,
   maxZoom: 18,
   zoomControl: true,
@@ -252,14 +252,14 @@ function styleTier(feature, latlng) {
   const tl = feature.properties.tier_label || '';
   if (tl === '核心枢纽') {
     return L.marker(latlng, { icon: L.divIcon({
-      className: '', html: '<div style="font-size:18px;color:#3d5c4a;line-height:1;">★</div>',
+      className: '', html: '<div style="font-size:18px;color:#943850;line-height:1;">★</div>',
       iconAnchor: [9, 9], iconSize: [18, 18]
     })});
   }
   if (tl === '区域中心') {
-    return L.circleMarker(latlng, { radius: 7, fillColor: '#6a8a77', fillOpacity: 0.9, color: '#fff', weight: 2 });
+    return L.circleMarker(latlng, { radius: 7, fillColor: '#BC8090', fillOpacity: 0.9, color: '#fff', weight: 2 });
   }
-  return L.circleMarker(latlng, { radius: 5, fillColor: '#9bb8a6', fillOpacity: 0.9, color: '#fff', weight: 1.5 });
+  return L.circleMarker(latlng, { radius: 5, fillColor: '#E2C4CC', fillOpacity: 0.9, color: '#fff', weight: 1.5 });
 }
 
 // ======================== Popup / Tooltip ========================
@@ -537,13 +537,14 @@ async function init() {
       }
     });
   });
-  if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40] });
+  if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40], maxZoom: 3 });
 
   // --- 信息栏 ---
   
 
   // (图层切换已移除)
 
+}
 
 // ======================== 辅助 ========================
 async function loadJSON(url) {

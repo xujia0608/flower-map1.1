@@ -113,6 +113,19 @@
 </head>
 <body>
 
+<!-- SVG 条纹图案：交易面叠加阴影 -->
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <pattern id="hatch-trade" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="10" stroke="#802838" stroke-width="3" stroke-opacity="0.4"/>
+    </pattern>
+    <pattern id="hatch-overlap" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-45)">
+      <rect width="8" height="8" fill="#802838" fill-opacity="0.3"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#fff" stroke-width="2" stroke-opacity="0.5"/>
+    </pattern>
+  </defs>
+</svg>
+
 <div style="position:absolute;top:12px;right:16px;z-index:1000;pointer-events:none;font-size:48px;color:#802838;text-shadow:0 0 4px #fff;line-height:1;">
   <div>▲</div><div style="font-size:18px;text-align:center;font-weight:700;">N</div>
 </div>
@@ -124,6 +137,22 @@
   <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级2</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级3</div>
   <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4 — 高密度</div>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
+  <h4>产区核密度 (5级)</h4>
+  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 等级1</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#A8586C;"></span> 等级2</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级3</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级4</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级5</div>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
+  <h4>交易核密度 (6级)</h4>
+  <div class="legend-row"><span class="legend-swatch" style="background:#802838;"></span> 等级1</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#943850;"></span> 等级2</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#A8586C;"></span> 等级3</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#BC8090;"></span> 等级4</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#D0A4B0;"></span> 等级5</div>
+  <div class="legend-row"><span class="legend-swatch" style="background:#E2C4CC;"></span> 等级6</div>
+  <div style="margin:4px 0;border-top:1px solid #E8CCD4;"></div>
   <h4>定价权等级</h4>
   <div class="legend-row"><span class="legend-swatch circle" style="background:#802838;width:16px;height:16px;"></span> 核心枢纽 (12px)</div>
   <div class="legend-row"><span class="legend-swatch circle" style="background:#A8586C;width:12px;height:12px;"></span> 区域中心 (8px)</div>
@@ -502,6 +531,31 @@ async function init() {
   layerGroups['idw'] = idwLayer;
   idwLayer.addTo(map);
   // all layers visible by default
+
+  // --- 产区核密度 (5级) ---
+  const prodColors = ['#943850','#A8586C','#BC8090','#D0A4B0','#E2C4CC'];
+  try {
+    const prodData = await loadJSON(base + 'kde_production.geojson');
+    const prodLayer = L.geoJSON(prodData, {
+      style: function(f) { var lv = (f.properties.level||1)-1; return { fillColor: prodColors[Math.min(lv,4)], fillOpacity: 0.55, color: 'transparent', weight: 0 }; },
+      interactive: false,
+    });
+    prodLayer.addTo(map);
+  } catch(e) { console.warn('产区KDE加载失败:', e); }
+
+  // --- 交易核密度 (6级, 条纹叠加) ---
+  try {
+    const tradeData = await loadJSON(base + 'kde_trade.geojson');
+    const tradeLayer = L.geoJSON(tradeData, {
+      style: function(f) { return { fillColor: 'rgba(128,40,56,0.5)', fillOpacity: 0.5, color: 'transparent', weight: 0 }; },
+      interactive: false,
+    });
+    tradeLayer.addTo(map);
+    // 给交易面加条纹: 修改 SVG path 的 fill 为 pattern
+    tradeLayer.eachLayer(function(l) {
+      if (l._path) { l._path.setAttribute('fill', 'url(#hatch-trade)'); l._path.setAttribute('fill-opacity', '1'); }
+    });
+  } catch(e) { console.warn('交易KDE加载失败:', e); }
 
   // --- 定价权等级点 (仅国内) ---
   const tierData = await loadJSON(base + 'pricing_power.geojson');
