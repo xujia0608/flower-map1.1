@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>花卉基地→斗南 云南地图弦图</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f5f5f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  }
+  .chart-container {
+    width: 1300px;
+    max-width: 98vw;
+    height: 960px;
+    background: #fcfcfb;
+    border-radius: 16px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+    margin: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  #chart {
+    width: 100%;
+    height: 100%;
+  }
+  #loading {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #fcfcfb;
+    z-index: 10;
+    transition: opacity 0.5s;
+  }
+  #loading .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #f0e6e6;
+    border-top-color: #C62828;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading .text {
+    font-size: 14px;
+    color: #888;
+    letter-spacing: 0.5px;
+  }
+  .footer-note {
+    position: absolute;
+    bottom: 18px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 13px;
+    color: #999;
+    pointer-events: none;
+    letter-spacing: 0.3px;
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+<div class="chart-container">
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="text">正在加载云南地图数据...</div>
+  </div>
+  <div id="chart"></div>
+  <div class="footer-note">数据来源：花卉基地运输数据集 · 底图：云南省地市边界 · 弦宽代表相对运输量 · 悬停查看详情</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// 1. 数据：模拟从 CSV 读取并按地市聚合
+//    每条记录: 基地名, 所属地市, 流量, lat, lng
+//    → 按 city 聚合: count, flow, lat/lng（平均坐标）
+// ═══════════════════════════════════════════════════════════
+const citiesData = [
+  {"city":"斗南","count":0,"flow":0,"lat":24.89,"lng":102.78},
+  {"city":"昆明","count":79,"flow":524184,"lat":24.8423,"lng":102.7982},
+  {"city":"玉溪","count":68,"flow":33991,"lat":24.2815,"lng":102.6133},
+  {"city":"曲靖","count":82,"flow":24799,"lat":25.3391,"lng":103.7318},
+  {"city":"红河","count":65,"flow":13468,"lat":23.7657,"lng":103.1298},
+  {"city":"楚雄","count":40,"flow":11414,"lat":25.2734,"lng":101.8004},
+  {"city":"大理","count":53,"flow":5421,"lat":25.6709,"lng":100.2913},
+  {"city":"文山","count":15,"flow":1599,"lat":23.3753,"lng":104.4301},
+  {"city":"西双版纳","count":29,"flow":1533,"lat":21.9121,"lng":100.8777},
+  {"city":"保山","count":26,"flow":1373,"lat":25.0743,"lng":99.0192},
+  {"city":"普洱","count":19,"flow":1350,"lat":22.9667,"lng":100.5886},
+  {"city":"丽江","count":9,"flow":586,"lat":26.8284,"lng":100.2575},
+  {"city":"迪庆","count":2,"flow":88,"lat":27.7808,"lng":99.6918}
+];
+
+// ═══════════════════════════════════════════════════════════
+// 2. 粉紫单色系配色 — C1~C6 循环，斗南固定 #C62828
+// ═══════════════════════════════════════════════════════════
+const PINK_PURPLE = ['#FCE4EC','#F8BBD0','#F06292','#E8325A','#C62828','#6A1B4D'];
+
+const sorted = citiesData.slice(1).sort(function(a, b) { return b.flow - a.flow; });
+const colorMap = { '斗南': '#C62828' };
+sorted.forEach(function(c, i) {
+  colorMap[c.city] = PINK_PURPLE[i % PINK_PURPLE.length];
+});
+
+// ═══════════════════════════════════════════════════════════
+// 3. 构建节点（坐标用 [lng, lat]，由 geo 组件投影）
+// ═══════════════════════════════════════════════════════════
+function makeNodes() {
+  var nodes = [];
+
+  // 斗南 hub
+  nodes.push({
+    name: '斗南',
+    value: [102.78, 24.89],       // [lng, lat] — geo 组件自动投影
+    flow: 0,
+    symbolSize: 60,
+    itemStyle: { color: colorMap['斗南'] },
+    label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#C62828' },
+    tooltipInfo: { bases: '—', flowDesc: '花卉汇聚交易中心' }
+  });
+
+  // 其他城市
+  sorted.forEach(function(c) {
+    var size = Math.max(18, Math.min(50, Math.log10(c.flow + 1) * 9 + 10));
+    nodes.push({
+      name: c.city,
+      value: [c.lng, c.lat],      // [lng, lat] — geo 组件自动投影
+      flow: c.flow,
+      symbolSize: size,
+      itemStyle: { color: colorMap[c.city] },
+      count: c.count,
+      tooltipInfo: { bases: c.count, flow: c.flow }
+    });
+  });
+
+  return nodes;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 4. 构建边（弦宽 = log10 缩放）
+// ═══════════════════════════════════════════════════════════
+function makeLinks() {
+  return sorted.map(function(c) {
+    var w = 2 + Math.log10(c.flow + 1) * 5;
+    return {
+      source: c.city,
+      target: '斗南',
+      value: c.flow,
+      lineStyle: {
+        width: Math.min(w, 32),
+        color: colorMap[c.city],
+        opacity: 0.55,
+        curveness: 0.06
+      }
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5. 主初始化：加载 GeoJSON → 注册地图 → 渲染图表
+// ═══════════════════════════════════════════════════════════
+(function() {
+  var chartDom = document.getElementById('chart');
+  var loadingEl = document.getElementById('loading');
+
+  // ── 从 DataV 加载云南省地市边界 GeoJSON ──
+  var mapUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/530000.json';
+
+  fetch(mapUrl)
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function(geoJson) {
+      // 注册地图
+      echarts.registerMap('云南城市', geoJson);
+
+      // 隐藏 loading
+      loadingEl.style.opacity = '0';
+      setTimeout(function() { loadingEl.style.display = 'none'; }, 500);
+
+      // 初始化图表
+      var myChart = echarts.init(chartDom, undefined, { renderer: 'canvas' });
+
+      var nodes = makeNodes();
+      var links = makeLinks();
+
+      var option = {
+
+        // ── 标题 ──
+        title: {
+          text: '花卉基地 → 斗南  运输流量地图弦图',
+          subtext: '共 487 个花卉基地 · 按地市聚合 · 叠加云南省地市边界 · 弦宽 ∝ 相对运输量',
+          left: 'center',
+          top: 12,
+          textStyle: { fontSize: 20, fontWeight: 600, color: '#2c2c2c', lineHeight: 30 },
+          subtextStyle: { fontSize: 12, color: '#999' }
+        },
+
+        // ── 提示框 ──
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: 'rgba(255,255,255,0.96)',
+          borderColor: '#e0e0e0',
+          borderWidth: 1,
+          padding: [10, 16],
+          borderRadius: 8,
+          textStyle: { fontSize: 13, lineHeight: 22 },
+          formatter: function(params) {
+            if (params.dataType === 'edge') {
+              var src = params.data.source;
+              var val = params.data.value;
+              return '<strong style="font-size:14px;">' + src + '</strong>'
+                   + ' → <strong style="font-size:14px;color:#C62828;">斗南</strong><br/>'
+                   + '<span style="color:#888;">运输量：</span><strong>'
+                   + val.toLocaleString() + '</strong>';
+            }
+            var info = params.data && params.data.tooltipInfo;
+            if (!info) return params.name || '';
+            var h = '<strong style="font-size:15px;color:'
+                  + (params.color || '#333') + ';">' + params.name + '</strong><br/>';
+            if (params.name === '斗南') {
+              h += '<span style="color:#888;">' + info.flowDesc + '</span>';
+              return h;
+            }
+            h += '<span style="color:#888;">基地数量：</span><strong>' + info.bases + '</strong> 个<br/>';
+            h += '<span style="color:#888;">总运输量：</span><strong>'
+               + info.flow.toLocaleString() + '</strong>';
+            return h;
+          }
+        },
+
+        // ── 地理底图 ──
+        geo: {
+          map: '云南城市',
+          roam: true,
+          zoom: 1.02,
+          center: [101.8, 24.8],   // 云南居中
+          label: {
+            show: true,
+            fontSize: 10,
+            color: '#888',
+            fontWeight: 400
+          },
+          itemStyle: {
+            areaColor: '#f7f3ee',
+            borderColor: '#d5cdc0',
+            borderWidth: 1.2
+          },
+          emphasis: {
+            itemStyle: {
+              areaColor: '#ede5d8'
+            },
+            label: {
+              show: true,
+              fontSize: 11,
+              color: '#555'
+            }
+          }
+        },
+
+        // ── 系列：力导向弦图（叠加在地图上） ──
+        series: [{
+          type: 'graph',
+          coordinateSystem: 'geo',
+          layout: 'none',
+          zlevel: 10,                // 确保节点和弦绘制在地图上方
+
+          // 节点
+          symbol: 'circle',
+          data: nodes,
+
+          // 边
+          edgeSymbol: ['none', 'none'],
+          links: links,
+          lineStyle: {
+            color: 'source',
+            curveness: 0.06,
+            opacity: 0.55
+          },
+
+          // 标签
+          label: {
+            show: true,
+            position: 'right',
+            formatter: function(p) { return p.name; },
+            fontSize: 12,
+            fontWeight: 500,
+            color: '#444',
+            offset: [6, 0]
+          },
+
+          // 高亮
+          emphasis: {
+            focus: 'adjacency',
+            lineStyle: {
+              width: 6,
+              opacity: 0.85
+            },
+            itemStyle: {
+              borderWidth: 2,
+              borderColor: '#6A1B4D',
+              shadowBlur: 12,
+              shadowColor: 'rgba(106,27,77,0.35)'
+            },
+            label: {
+              show: true,
+              fontWeight: 'bold',
+              fontSize: 14,
+              color: '#6A1B4D'
+            }
+          },
+
+          // 允许拖拽节点（不影响 geo roaming）
+          draggable: false,
+
+          // 动画
+          animationDuration: 800,
+          animationEasing: 'cubicOut'
+        }],
+
+        // ── 图例 ──
+        legend: {
+          data: [
+            { name: '斗南', icon: 'circle',
+              textStyle: { fontSize: 13, fontWeight: 'bold', color: '#C62828' } },
+            ...sorted.map(function(c) {
+              return { name: c.city, icon: 'circle',
+                textStyle: { fontSize: 11, color: '#666' } };
+            })
+          ],
+          orient: 'vertical',
+          right: 16,
+          top: 72,
+          itemWidth: 10,
+          itemHeight: 10,
+          itemGap: 6,
+          borderRadius: 4,
+          backgroundColor: 'rgba(255,255,255,0.80)',
+          borderWidth: 0,
+          padding: [8, 12]
+        },
+
+        // ── 全局调色板 ──
+        color: Object.values(colorMap)
+      };
+
+      myChart.setOption(option);
+
+      // 自适应
+      window.addEventListener('resize', function() { myChart.resize(); });
+
+      console.log('== 花卉基地->斗南地图弦图已加载 | 共 487 个基地, 12 个地市');
+    })
+    .catch(function(err) {
+      loadingEl.innerHTML = ''
+        + '<div style="font-size:40px;color:#ccc;margin-bottom:12px;">&#9888;</div>'
+        + '<div class="text">云南地图加载失败，请检查网络后刷新</div>'
+        + '<div style="font-size:11px;color:#bbb;margin-top:8px;">'
+        + err.message + '</div>';
+      console.error('GeoJSON fetch failed:', err);
+    });
+})();
+</script>
+</body>
+</html>
