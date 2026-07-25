@@ -26,7 +26,7 @@ CONTINENT  = BASE + "/geojson/continent.geojson"
 CN_BOUND   = BASE + "/geojson/china_boundary.geojson"
 CHINA_PROV = BASE + "/geojson/china_provinces.geojson"
 YN_PREF    = BASE + "/B1_全球辐射/云南行政区_市级.shp"
-OUT_HTML   = BASE + "/output/shortest_path_tree.html"
+OUT_HTML   = BASE + "/shortest_path_tree.html"
 
 DOUNAN_LON, DOUNAN_LAT = 102.787, 24.902
 FLOWER_BASES = BASE + "/B2_供应链/input/flower_bases_yn.shp"
