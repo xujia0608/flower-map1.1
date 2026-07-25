@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>加工厂→鲜花饼门店 直供Sankey</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root { --bg: #FDF9F5; --c8: #5A3E28; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh;
+    font-family: "SimSun","宋体",serif;
+  }
+  .chart-container {
+    width: 960px; height: 680px;
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    margin: 20px; position: relative;
+  }
+  #chart { width:100%; height:100%; }
+</style>
+</head>
+<body>
+<div class="chart-container">
+  <div id="chart"></div>
+</div>
+<script>
+// ── 数据 ──
+var nodes = [
+  { name: '鲜花饼门店', itemStyle: { color: '#8A6A4A' }, label: { fontSize: 15, fontWeight: 'bold' } },
+  { name: '工厂46', itemStyle: { color: '#B8883E' } },
+  { name: '工厂1',  itemStyle: { color: '#B8883E' } },
+  { name: '工厂6',  itemStyle: { color: '#B8883E' } },
+  { name: '工厂15', itemStyle: { color: '#B8883E' } },
+  { name: '工厂17', itemStyle: { color: '#B8883E' } },
+  { name: '工厂20', itemStyle: { color: '#B8883E' } },
+  { name: '工厂21', itemStyle: { color: '#B8883E' } },
+  { name: '工厂22', itemStyle: { color: '#B8883E' } },
+  { name: '工厂23', itemStyle: { color: '#B8883E' } },
+  { name: '工厂24', itemStyle: { color: '#B8883E' } }
+];
+var links = [
+  { source: '工厂46', target: '鲜花饼门店', value: 69 },
+  { source: '工厂1',  target: '鲜花饼门店', value: 67 },
+  { source: '工厂6',  target: '鲜花饼门店', value: 67 },
+  { source: '工厂15', target: '鲜花饼门店', value: 67 },
+  { source: '工厂17', target: '鲜花饼门店', value: 67 },
+  { source: '工厂20', target: '鲜花饼门店', value: 67 },
+  { source: '工厂21', target: '鲜花饼门店', value: 67 },
+  { source: '工厂22', target: '鲜花饼门店', value: 67 },
+  { source: '工厂23', target: '鲜花饼门店', value: 67 },
+  { source: '工厂24', target: '鲜花饼门店', value: 67 }
+];
+
+// ── 图表 ──
+var chart = echarts.init(document.getElementById('chart'));
+chart.setOption({
+  title: {
+    text: '加工厂→鲜花饼门店 直供Sankey',
+    left: 'center', top: 18,
+    textStyle: {
+      fontSize: 18, fontWeight: 700, color: '#5A3E28',
+      fontFamily: '"SimHei","黑体",sans-serif'
+    }
+  },
+  tooltip: {
+    trigger: 'item',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderColor: '#E8DDD0', borderWidth: 1,
+    padding: [10, 14], borderRadius: 6,
+    formatter: function(p) {
+      if (p.dataType === 'edge')
+        return '<strong>' + p.data.source + '</strong> → <strong style="color:#8A6A4A;">鲜花饼门店</strong><br/>'
+          + '<span style="color:#888;">覆盖门店：</span><strong>' + p.data.value + '</strong> 家';
+      return '<strong style="font-size:15px;color:#5A3E28;">' + p.name + '</strong>';
+    }
+  },
+  series: [{
+    type: 'sankey',
+    layout: 'none', layoutIterations: 0,
+    top: 64, bottom: 24, left: 70, right: 120,
+    nodeWidth: 22, nodeGap: 12,
+    draggable: true,
+    data: nodes,
+    links: links,
+    label: {
+      show: true, position: 'right',
+      fontSize: 13, fontWeight: 500, color: '#5A3E28'
+    },
+    lineStyle: {
+      color: 'gradient', opacity: 0.35, curveness: 0.5
+    },
+    emphasis: {
+      focus: 'adjacency',
+      lineStyle: { opacity: 0.7 }
+    }
+  }]
+});
+window.addEventListener('resize', function() { chart.resize(); });
+</script>
+</body>
+</html>
