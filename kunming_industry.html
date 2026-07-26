@@ -2703,7 +2703,7 @@ var storeGeoJSON = {
 
 // 4. 初始化地图
 // ═══════════════════════════════════════════════════════════════
-var map = L.map('map', { center: [24.8, 101.8], zoom: 6.5, zoomSnap: 0.5, zoomControl: true, attributionControl: false });
+var map = L.map('map', { center: [24.8, 101.8], zoom: 7.0, zoomSnap: 0.5, zoomControl: true, attributionControl: false });
 legendControl.addTo(map);
 // Compute bounds from all data points
 var allCoords = [];
@@ -2722,8 +2722,7 @@ if (EMBED_POI_STORES && EMBED_POI_STORES.features) {
   });
 }
 var bounds = L.latLngBounds(allCoords);
-map.fitBounds(bounds.pad(0.08), { maxZoom: 5.5 });
-map.setMaxBounds(bounds.pad(0.5));
+// map.setZoom removed - handled at end
 
 // ═══════════════════════════════════════════════════════════════
 // 5. 创建图层（先空，数据稍后加载）
@@ -3069,14 +3068,15 @@ var resetCtrl = L.control({ position: 'topright' });
 resetCtrl.onAdd = function() {
   var div = L.DomUtil.create('div', 'leaflet-control');
   div.innerHTML = '<div style="background:rgba(255,255,255,0.9);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;color:#5A3E28;box-shadow:0 1px 6px rgba(0,0,0,0.1);border:1px solid #E8DDD0;white-space:nowrap;">↺ 全省视图</div>';
-  div.onclick = function() { map.fitBounds(bounds, { maxZoom: 5.5 }); };
+  div.onclick = function() { map.fitBounds(bounds); map.setZoom(7.0); };
   L.DomEvent.disableClickPropagation(div);
   return div;
 };
 resetCtrl.addTo(map);
 
-map.fitBounds(bounds);
-setTimeout(function() { map.invalidateSize(); }, 100);
+map.invalidateSize();
+map.setZoom(7.0, {animate: false});
+map.setMaxBounds(bounds.pad(0.5));
 window.addEventListener('resize', function() { map.invalidateSize(); });
 console.log('== 加工厂->门店配送地图已加载 | 42 个加工厂, 139 个门店, 2152 条 OD 路线');
 </script>
